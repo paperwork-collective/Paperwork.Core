@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+nupkg/
+
+## Rider
+.idea/
+
+## VS Code
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
