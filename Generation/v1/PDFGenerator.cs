@@ -649,7 +649,7 @@ namespace Paperwork.Services.Generation.v1
 
         #endregion
 
-        public const string ParameterValuesName = "_fields";
+        public const string ParameterValuesName = "#fields";
 
         protected virtual void AddTemplateParametersToDocument(Document doc, TemplateConfigBase config)
         {
