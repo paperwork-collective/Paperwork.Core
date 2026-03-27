@@ -17,7 +17,7 @@ var factory = PaperworkFactory.Create(httpClient).Build();
 
 var bytes = await factory.NewDocument()
     .WithLayout("<html><body><p data-content='{{fields[\"title\"]}}'></p></body></html>")
-    .WithParameter("title", "Hello World")
+    .WithField("title", "Hello World")
     .BuildBytesAsync();
 
 await File.WriteAllBytesAsync("output.pdf", bytes);
@@ -78,13 +78,13 @@ builder.WithDataFile("order", "order.json");
 builder.WithData("order", new { total = 1200 });
 ```
 
-### Parameters
+### Fields
 
 Scalar values accessible in templates as `fields["key"]`:
 
 ```csharp
-builder.WithParameter("date", "2026-03-25");
-builder.WithParameter("title", "Invoice #1001");
+builder.WithField("date", "2026-03-25");
+builder.WithField("title", "Invoice #1001");
 ```
 
 ```html

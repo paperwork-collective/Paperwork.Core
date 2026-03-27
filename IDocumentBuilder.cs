@@ -68,13 +68,17 @@ namespace Paperwork
         /// <summary>Fetches JSON data from a remote URL at generation time.</summary>
         IDocumentBuilder WithDataUrl(string name, string url, string? auth = null, string? format = null);
 
-        // ── Parameters (fields[]) ─────────────────────────────────────────────
+        // ── Fields (fields[]) ─────────────────────────────────────────────────
 
         /// <summary>
-        /// Sets a parameter value, accessible in templates as <c>fields['id']</c>.
+        /// Sets a field value, accessible in templates as <c>fields['id']</c>.
         /// Adds both a template default and a runtime override so the value is
         /// always available regardless of what the template config declares.
         /// </summary>
+        IDocumentBuilder WithField(string id, string value, string type = "string");
+
+        /// <inheritdoc cref="WithField"/>
+        [Obsolete("Use WithField instead.")]
         IDocumentBuilder WithParameter(string id, string value, string type = "string");
 
         // ── Render options ────────────────────────────────────────────────────

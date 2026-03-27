@@ -23,8 +23,8 @@ namespace Paperwork.Services.Generation.v1
         [JsonPropertyName("mainLayout")]
         public override string MainLayoutName { get; set; }
 
-        [JsonPropertyName("parameters")]
-        public List<DataParameter> Parameters { get; set; }
+        [JsonPropertyName("fields")]
+        public List<DataField> Fields { get; set; }
 
 
         public TemplateConfigV1() : base(1, 1, DefaultMainLayoutName)
@@ -103,7 +103,7 @@ namespace Paperwork.Services.Generation.v1
 
         }
 
-        private string EnsureUrlParametersReplaced(string original, List<DataParameter> parameters)
+        private string EnsureUrlFieldsReplaced(string original, List<DataField> parameters)
         {
             if (original.IndexOf(DataParameterPrefix) >= 0)
             {
@@ -128,7 +128,7 @@ namespace Paperwork.Services.Generation.v1
             bool success = false;
 
 #if OUTPUT_TO_CONSOLE
-            Console.WriteLine("Ensuring config loaded with " + (this.Parameters == null ? "0" : this.Parameters.Count.ToString()) + " parameters");
+            Console.WriteLine("Ensuring config loaded with " + (this.Fields == null ? "0" : this.Fields.Count.ToString()) + " fields");
 #endif
             try
             {
@@ -157,9 +157,9 @@ namespace Paperwork.Services.Generation.v1
                             if (string.IsNullOrEmpty(url))
                                 throw new ArgumentNullException("The configuration item " + (config.Name ?? "UNNAMED") + " does not have a source set when the remote type is Source");
 
-                            if(this.Parameters != null && this.Parameters.Count > 0)
+                            if(this.Fields != null && this.Fields.Count > 0)
                             {
-                                url = this.EnsureUrlParametersReplaced(url, this.Parameters);
+                                url = this.EnsureUrlFieldsReplaced(url, this.Fields);
                             }
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Item type is source so loading the content from " +  url);
@@ -192,9 +192,9 @@ namespace Paperwork.Services.Generation.v1
                     if (string.IsNullOrEmpty(url))
                         throw new ArgumentNullException("The configuration item " + (config.Name ?? "UNNAMED") + " does not have a source set when the remote type is Source");
 
-                    if (this.Parameters != null && this.Parameters.Count > 0)
+                    if (this.Fields != null && this.Fields.Count > 0)
                     {
-                        url = this.EnsureUrlParametersReplaced(url, this.Parameters);
+                        url = this.EnsureUrlFieldsReplaced(url, this.Fields);
                     }
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Item type is source so loading the content from " +  url);
@@ -322,7 +322,7 @@ namespace Paperwork.Services.Generation.v1
         public string Token { get; set; }
     }
 
-    public class DataParameter
+    public class DataField
     {
         [JsonPropertyName("id")]
         public string ID { get; set; }
@@ -341,7 +341,7 @@ namespace Paperwork.Services.Generation.v1
 
         public bool Required { get; set; } = true;
 
-        public DataParameter() { }
+        public DataField() { }
 
         
 

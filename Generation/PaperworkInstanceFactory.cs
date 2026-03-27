@@ -149,10 +149,10 @@ namespace Paperwork.Services.Generation
             }
             else
             {
-	            if (request.Parameters != null)
-		            Console.WriteLine("Deserialized request with " + request.Parameters.Count + " parameters");
+	            if (request.Fields != null)
+		            Console.WriteLine("Deserialized request with " + request.Fields.Count + " parameters");
 	            else
-					Console.WriteLine("The deserialized request had no parameters on it");
+					Console.WriteLine("The deserialized request had no fields on it");
 	            
                 result = await DoGenerateDocument(request);
             }

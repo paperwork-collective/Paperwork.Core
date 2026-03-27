@@ -39,7 +39,7 @@ namespace Paperwork.Services.Generation
         /// </summary>
         public List<PaperworkRequestAuthToken> AuthTokens {get;set;}
 
-        public List<PaperworkRequestParameter> Parameters { get; set; }
+        public List<PaperworkRequestField> Fields { get; set; }
 
         /// <summary>
         /// Gets or sets the rendering output options for this request
@@ -65,7 +65,7 @@ namespace Paperwork.Services.Generation
             this.BaseSource = string.Empty;
             this.RenderOptions = new PaperworkRequestRenderOptions();
             this.AuthTokens = new List<PaperworkRequestAuthToken>();
-            this.Parameters = new List<PaperworkRequestParameter>();
+            this.Fields = new List<PaperworkRequestField>();
         }
     }
 
@@ -83,9 +83,9 @@ namespace Paperwork.Services.Generation
     }
 
     /// <summary>
-    /// Represents a single parameter that can be used within the template
+    /// Represents a single field that can be used within the template
     /// </summary>
-    public class PaperworkRequestParameter
+    public class PaperworkRequestField
     {
         public string Id { get; set; }
 

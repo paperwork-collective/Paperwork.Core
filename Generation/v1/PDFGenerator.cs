@@ -659,9 +659,9 @@ namespace Paperwork.Services.Generation.v1
             
             Dictionary<string, object> values = new Dictionary<string, object>();
 
-            if (configV1.Parameters != null && configV1.Parameters.Count > 0)
+            if (configV1.Fields != null && configV1.Fields.Count > 0)
             {
-                foreach (var param in configV1.Parameters)
+                foreach (var param in configV1.Fields)
                 {
                     values.Add(param.ID, param.Value);
                     doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the template parameter " + ParameterValuesName + "." + param.ID + " to '" + param.Value + "'");
@@ -672,14 +672,14 @@ namespace Paperwork.Services.Generation.v1
         }
         protected virtual void AddParametersToDocument(Document doc, PaperworkRequest request)
         {
-            if (request.Parameters != null && request.Parameters.Count > 0)
+            if (request.Fields != null && request.Fields.Count > 0)
             {
                 Dictionary<string, object> values = doc.Params[ParameterValuesName] as Dictionary<string, object>;
-                
+
                 if (null == values)
                     values = new Dictionary<string, object>();
-                
-                foreach (var param in request.Parameters)
+
+                foreach (var param in request.Fields)
                 {
                     switch (param.Type)
                     {
@@ -696,7 +696,7 @@ namespace Paperwork.Services.Generation.v1
             }
             else
             {
-                doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","No request parameters to set on document");
+                doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","No request fields to set on document");
             }
         }
 

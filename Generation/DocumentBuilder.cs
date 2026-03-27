@@ -20,7 +20,7 @@ namespace Paperwork
     /// var pdf = await factory.NewDocument()
     ///     .WithLayoutFile("invoice.html")
     ///     .WithData("invoice", invoiceJson)
-    ///     .WithParameter("date", "2026-03-25")
+    ///     .WithField("date", "2026-03-25")
     ///     .BuildBytesAsync();
     /// </code>
     /// </remarks>
@@ -28,7 +28,7 @@ namespace Paperwork
     {
         private readonly IPaperworkFactory _factory;
         private readonly TemplateConfigV1 _config;
-        private readonly List<PaperworkRequestParameter> _overrides;
+        private readonly List<PaperworkRequestField> _overrides;
         private readonly PaperworkRequestRenderOptions _renderOptions;
 
         // Direct-object storage — triggers the Scryber render path
@@ -49,7 +49,7 @@ namespace Paperwork
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _config = new TemplateConfigV1();
-            _overrides = new List<PaperworkRequestParameter>();
+            _overrides = new List<PaperworkRequestField>();
             _renderOptions = new PaperworkRequestRenderOptions();
             _componentLayouts = new Dictionary<string, IComponent>();
             _directStyleGroups = new List<(string?, StyleGroup)>();
@@ -189,25 +189,29 @@ namespace Paperwork
             return this;
         }
 
-        // ── Parameters ────────────────────────────────────────────────────────
+        // ── Fields ────────────────────────────────────────────────────────────
 
-        public IDocumentBuilder WithParameter(string id, string value, string type = "string")
+        public IDocumentBuilder WithField(string id, string value, string type = "string")
         {
-            _config.Parameters ??= new List<DataParameter>();
-            var existing = _config.Parameters.FirstOrDefault(p => p.ID == id);
+            _config.Fields ??= new List<DataField>();
+            var existing = _config.Fields.FirstOrDefault(p => p.ID == id);
             if (existing != null)
                 existing.Value = value;
             else
-                _config.Parameters.Add(new DataParameter { ID = id, Value = value, Type = type });
+                _config.Fields.Add(new DataField { ID = id, Value = value, Type = type });
 
             var existingOverride = _overrides.FirstOrDefault(p => p.Id == id);
             if (existingOverride != null)
                 existingOverride.Value = value;
             else
-                _overrides.Add(new PaperworkRequestParameter { Id = id, Value = value, Type = type });
+                _overrides.Add(new PaperworkRequestField { Id = id, Value = value, Type = type });
 
             return this;
         }
+
+        [Obsolete("Use WithField instead.")]
+        public IDocumentBuilder WithParameter(string id, string value, string type = "string")
+            => WithField(id, value, type);
 
         // ── Render options ────────────────────────────────────────────────────
 
@@ -264,7 +268,7 @@ namespace Paperwork
             var request = new PaperworkRequest
             {
                 Content = configJson,
-                Parameters = _overrides,
+                Fields = _overrides,
                 RenderOptions = _renderOptions
             };
 
@@ -352,8 +356,8 @@ namespace Paperwork
 
             // Apply parameters as fields dictionary
             var fields = new Dictionary<string, object>();
-            if (_config.Parameters != null)
-                foreach (var p in _config.Parameters)
+            if (_config.Fields != null)
+                foreach (var p in _config.Fields)
                     fields[p.ID] = p.Value;
             foreach (var o in _overrides)
                 fields[o.Id] = o.Value;
