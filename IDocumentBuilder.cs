@@ -20,11 +20,11 @@ namespace Paperwork
         IDocumentBuilder WithLayout(Stream stream, string name = "main");
 
         /// <summary>
-        /// Adds a named Scryber component. If <paramref name="name"/> matches the main layout name
+        /// Adds a named component. If <paramref name="name"/> matches the main layout name
         /// (default <c>"main"</c>) and the component is a <see cref="Document"/>, it is used as
-        /// the root document. All named components are exposed as <c>_templates</c> in the document
+        /// the root document. All named components are exposed as <c>$layouts</c> in the document
         /// params, so the main template can reference partials via
-        /// <c>{{_templates["myPartial"]}}</c>.
+        /// <c>{{$layouts["myPartial"]}}</c> or <c>{{$layouts.myPartial}}</c>
         /// </summary>
         IDocumentBuilder WithLayout(IComponent component, string name = "main");
 
@@ -71,7 +71,7 @@ namespace Paperwork
         // ── Fields (fields[]) ─────────────────────────────────────────────────
 
         /// <summary>
-        /// Sets a field value, accessible in templates as <c>fields['id']</c>.
+        /// Sets a field value, accessible in templates as <c>$fields['id']</c> or <c>$fields.id</c>.
         /// Adds both a template default and a runtime override so the value is
         /// always available regardless of what the template config declares.
         /// </summary>

@@ -309,7 +309,7 @@ namespace Paperwork
             // Expose all named components as _templates so the main layout can reference
             // partials via {{_templates["myPartial"]}}
             if (_componentLayouts.Count > 0)
-                doc.Params["_templates"] = _componentLayouts;
+                doc.Params["$layouts"] = _componentLayouts;
 
             // Apply string CSS from config as HTMLStyle elements
             if (doc is Scryber.Html.Components.HTMLDocument htmlDoc && _config.Style.Count > 0)
@@ -361,7 +361,7 @@ namespace Paperwork
                     fields[p.ID] = p.Value;
             foreach (var o in _overrides)
                 fields[o.Id] = o.Value;
-            doc.Params["fields"] = fields;
+            doc.Params["$fields"] = fields;
 
             // Render
             using var ms = new MemoryStream();

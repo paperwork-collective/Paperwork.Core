@@ -22,8 +22,9 @@ namespace Paperwork
     ///     .Build();
     /// </code>
     /// </remarks>
-    public sealed class PaperworkFactory
+    public sealed class PaperworkFactory : IDisposable
     {
+        private readonly bool _ownsHttpClient;
         private readonly HttpClient _httpClient;
         private readonly List<IPaperworkAuthService> _authServices = new();
 
@@ -31,16 +32,27 @@ namespace Paperwork
         private IPaperworkRemoteFileRequestService? _fileRequestService;
         private System.Text.Json.JsonSerializerOptions? _serializerOptions;
 
-        private PaperworkFactory(HttpClient httpClient)
+        private PaperworkFactory(HttpClient httpClient, bool ownsHttpClient)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _ownsHttpClient = ownsHttpClient;
         }
 
         // ── Entry point ───────────────────────────────────────────────────────
 
+        /// <summary>
+        ///  Creates a new builder with its own internal <see cref="HttpClient"/> for requests.
+        /// </summary>
+        /// <returns></returns>
+        public static PaperworkFactory Create()
+        {
+            var httpClient = new HttpClient();
+            return new PaperworkFactory(httpClient, true);
+        }
+        
         /// <summary>Creates a new builder targeting the supplied <see cref="HttpClient"/>.</summary>
         public static PaperworkFactory Create(HttpClient httpClient)
-            => new(httpClient);
+            => new(httpClient, false);
 
         // ── Auth ──────────────────────────────────────────────────────────────
 
@@ -111,5 +123,25 @@ namespace Paperwork
         /// equivalent to <c>Build().NewDocument()</c>.
         /// </summary>
         public IDocumentBuilder NewDocument() => Build().NewDocument();
+
+        //
+        // IDisposable Implementaion
+        //
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+        }
+
+        protected void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if(this._ownsHttpClient)
+                    this._httpClient.Dispose();
+            }
+        }
+        
+        ~PaperworkFactory() => this.Dispose(false);
     }
 }

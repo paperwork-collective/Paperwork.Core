@@ -1,6 +1,7 @@
 # Paperwork.Core
 
-Core PDF generation library for Paperwork. Provides a fluent builder API over the [Scryber](https://github.com/richard-scryber/scryber.core) rendering engine, to generate PDFs from HTML templates, CSS, and JSON data. to generate PDFs from HTML templates, CSS, and JSON data.
+Core PDF generation library for Paperwork. Provides a fluent builder API over the [Scryber](https://github.com/richard-scryber/scryber.core) rendering engine, to generate PDFs from HTML templates, CSS, and JSON data.
+For documentation see [Paperwork.help](https://paperwork.help)
 
 ## Installation
 
@@ -13,7 +14,8 @@ dotnet add package Paperwork.Core
 ```csharp
 using Paperwork;
 
-var factory = PaperworkFactory.Create(httpClient).Build();
+using var factory = PaperworkFactory.Create(httpClient).Build();
+//using var factory = PaperworkFactory.Create(); - own internal httpClient
 
 var bytes = await factory.NewDocument()
     .WithLayout("<html><body><p data-content='{{fields[\"title\"]}}'></p></body></html>")
@@ -52,8 +54,11 @@ builder.WithLayoutFile("invoice.html");
 // From a URL (fetched at render time)
 builder.WithLayoutUrl("https://cdn.example.com/template.html");
 
-// Pre-built Scryber Document
+// Pre-built Document
 builder.WithLayout(document);
+
+// Add custom partials that can be accessed via $layouts["name"]
+builder.WithLayout("<p> Injected by {{model.name}}</p>", "innerPartial");
 ```
 
 ### Styles
@@ -62,7 +67,7 @@ builder.WithLayout(document);
 builder.WithStyle("body { font-family: sans-serif; }");
 builder.WithStyleFile("styles.css");
 builder.WithStyleUrl("https://cdn.example.com/styles.css");
-builder.WithStyle(styleGroup);  // Scryber StyleGroup
+builder.WithStyle(styleGroup);  // Custom StyleGroup
 ```
 
 ### Data
@@ -80,7 +85,7 @@ builder.WithData("order", new { total = 1200 });
 
 ### Fields
 
-Scalar values accessible in templates as `fields["key"]`:
+Scalar values accessible in templates as `$fields["key"]`:
 
 ```csharp
 builder.WithField("date", "2026-03-25");
@@ -110,14 +115,14 @@ Inside HTML templates, use handlebars-style expressions:
 
 ```html
 <!-- Parameter -->
-<p data-content='{{fields["date"]}}'></p>
+<p data-content='{{$fields["date"]}}'></p>
 
 <!-- Data object field -->
 <p data-content='{{order.customerName}}'></p>
 
 <!-- Loop over array -->
 {{#each items}}
-<p data-content='{{this.label}}'></p>
+<p data-content='{{.label}}'></p>
 {{/each}}
 ```
 
