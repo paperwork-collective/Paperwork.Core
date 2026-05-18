@@ -10,6 +10,7 @@ using System.Text;
 using Scryber;
 using Scryber.Caching;
 using Scryber.Drawing;
+using TraceLevel = Scryber.TraceLevel;
 
 namespace Paperwork.Services.Generation.v1
 {
@@ -167,7 +168,7 @@ namespace Paperwork.Services.Generation.v1
                     AddTemplateParametersToDocument(doc, template);
                     
                     //Add or override any that are set on the request
-                    AddParametersToDocument(doc, request);
+                    AddFieldsToDocument(doc, request);
 
                     AddTemplateContentToDocument(doc, template);
                 }
@@ -649,7 +650,8 @@ namespace Paperwork.Services.Generation.v1
 
         #endregion
 
-        public const string ParameterValuesName = "#fields";
+        public const string FieldsValuesName = "$fields";
+        public const string LayoutsValuesName = "$layouts";
 
         protected virtual void AddTemplateParametersToDocument(Document doc, TemplateConfigBase config)
         {
@@ -661,38 +663,39 @@ namespace Paperwork.Services.Generation.v1
 
             if (configV1.Fields != null && configV1.Fields.Count > 0)
             {
-                foreach (var param in configV1.Fields)
+                foreach (var field in configV1.Fields)
                 {
-                    values.Add(param.ID, param.Value);
-                    doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the template parameter " + ParameterValuesName + "." + param.ID + " to '" + param.Value + "'");
+                    values.Add(field.ID, field.Value);
+                    doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the template field " + FieldsValuesName + "." + field.ID + " to '" + field.Value + "'");
                 }
             }
             
-            doc.Params[ParameterValuesName] = values;
+            doc.Params[FieldsValuesName] = values;
         }
-        protected virtual void AddParametersToDocument(Document doc, PaperworkRequest request)
+        
+        protected virtual void AddFieldsToDocument(Document doc, PaperworkRequest request)
         {
             if (request.Fields != null && request.Fields.Count > 0)
             {
-                Dictionary<string, object> values = doc.Params[ParameterValuesName] as Dictionary<string, object>;
+                Dictionary<string, object> values = doc.Params[FieldsValuesName] as Dictionary<string, object>;
 
                 if (null == values)
                     values = new Dictionary<string, object>();
 
-                foreach (var param in request.Fields)
+                foreach (var field in request.Fields)
                 {
-                    switch (param.Type)
+                    switch (field.Type)
                     {
                         case("string"): 
                         default:
                             //TODO: Validate the type and options.
-                            values[param.Id] = param.Value;
-                            doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the request parameter " + ParameterValuesName + "." + param.Id + " to '" + param.Value + "'");
+                            values[field.Id] = field.Value;
+                            doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the request field " + FieldsValuesName + "." + field.Id + " to '" + field.Value + "'");
                             break;
                     }
                 }
 
-                doc.Params[ParameterValuesName] = values;
+                doc.Params[FieldsValuesName] = values;
             }
             else
             {
@@ -724,10 +727,11 @@ namespace Paperwork.Services.Generation.v1
                 {
                     for (var i = 0; i < data.Count; i++)
                     {
+                        var item = data[i];
+                        var key = item.Name;
+                        
                         try
                         {
-                            var item = data[i];
-                            var key = item.Name;
                             if (string.IsNullOrEmpty(key))
                             {
                                 key = "_unnamed" + i.ToString();
@@ -742,11 +746,15 @@ namespace Paperwork.Services.Generation.v1
 
                                 if (value.StartsWith("{{") && value.EndsWith("}}"))
                                 {
-                                    doc.Params[key] = value.Substring(1, value.Length - 2);
+                                    value = value.Substring(1, value.Length - 2);
+                                    doc.Params[key] = value;
+                                    doc.TraceLog.Add(TraceLevel.Message, "Generator","Set the request data for " + key + " to escaped string " + value );
                                 }
                                 else if (value.StartsWith("[[") && value.EndsWith("]]"))
                                 {
-                                    doc.Params[key] = value.Substring(1, value.Length - 2);
+                                    value = value.Substring(1, value.Length - 2);
+                                    doc.Params[key] = value;
+                                    doc.TraceLog.Add(TraceLevel.Message, "Generator","Set the request data for " + key + " to escaped string " + value );
                                 }
                                 else if ((value.StartsWith("{") && value.EndsWith("}")) || (value.StartsWith("[") && value.EndsWith("]")))
                                 {
@@ -756,21 +764,25 @@ namespace Paperwork.Services.Generation.v1
                                     {
                                         doc.Params[key] = obj.RootElement.Clone();
                                     }
+                                    doc.TraceLog.Add(TraceLevel.Message, "Generator","Set the request data for " + key + " to Parsed JSON data");
+
                                 }
                                 else
                                 {
                                     //Just a string value
                                     doc.Params[key] = value;
+                                    doc.TraceLog.Add(TraceLevel.Message, "Generator","Set the request data for " + key + " to string data : " + value);
+
                                 }
                             }
                         }
-                        catch (InvalidDataException)
+                        catch (InvalidDataException ex)
                         {
-                            throw;
+                            doc.TraceLog.Add(TraceLevel.Error, "Generator", "Could not add the data parameter " + key + " to template content: " + ex.Message, ex);
                         }
                         catch (Exception ex)
                         {
-                            throw new InvalidDataException("The data item at index " + i.ToString() + " could not be parsed. Please check the configuration. ", ex);
+                            doc.TraceLog.Add(TraceLevel.Error, "Generator", "Could not add the data parameter " + key + " to template content: " + ex.Message, ex);
                         }
                     }
                 }
@@ -804,14 +816,23 @@ namespace Paperwork.Services.Generation.v1
                         {
                             key = "_style" + i.ToString();
                         }
-                        
-                        var css = new Scryber.Html.Components.HTMLStyle();
-                        css.Contents = item.Value();
-                        css.ID = key;
-                        css.LoadedSource = item.BaseSource();
-                        css.LoadType = Scryber.ParserLoadType.WebBuildProvider;
-                        html.Head.Contents.Add(css);
 
+                        try
+                        {
+
+                            var css = new Scryber.Html.Components.HTMLStyle();
+                            css.Contents = item.Value();
+                            css.ID = key;
+                            css.LoadedSource = item.BaseSource();
+                            css.LoadType = Scryber.ParserLoadType.WebBuildProvider;
+                            html.Head.Contents.Add(css);
+                            doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator",
+                                "Added styles " + key + " to to the document head.");
+                        }
+                        catch (Exception ex)
+                        {
+                            doc.TraceLog.Add(TraceLevel.Error, "Generator", "Could not add the data parameter " + key + " to template content: " + ex.Message, ex);
+                        }
                     }
 
                 }
@@ -825,9 +846,47 @@ namespace Paperwork.Services.Generation.v1
                 }
             }
             
-            
+            var templates = config.LayoutContent();
 
-            //TODO: Add the layouts
+            if (null != html && null != templates && templates.Count > 0)
+            {
+                try
+                {
+                    var dict = new Dictionary<string, string>();
+                    html.Params[LayoutsValuesName] =  dict;
+                    
+                    for (var i = 0; i < templates.Count; i++)
+                    {
+                        var item = (LayoutContent)templates[i];
+                        var key = item.Name;
+
+                        try
+                        {
+                            var content = item.Value();
+                            dict.Add(key, content);
+                        
+                            doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Added the template content " + LayoutsValuesName + "." + item.Name + " to the document");
+
+                        }
+                        catch (Exception e)
+                        {
+                            dict.Remove(key);
+                            doc.TraceLog.Add(TraceLevel.Error, "Generator", "Could not add the template layout '" + key + "' to template content: " + e.Message, e);
+                            throw;
+                        }
+                    }
+ 
+                }
+                catch (InvalidDataException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidDataException("The template style content could not be parsed into valid css. Please check the source or inner errors. ", ex);
+                }
+            }
+            
         }
 
         /// <summary>
