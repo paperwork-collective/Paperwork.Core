@@ -1,4 +1,4 @@
-﻿#define OUTPUT_TO_CONSOLE
+﻿//#define OUTPUT_TO_CONSOLE
 
 using System;
 using System.Diagnostics;
@@ -12,9 +12,9 @@ using Scryber.Caching;
 using Scryber.Drawing;
 using TraceLevel = Scryber.TraceLevel;
 
-namespace Paperwork.Services.Generation.v1
+namespace Paperwork.Generation.v1
 {
-    public class PDFGenerator : IPaperworkGenerator, IDisposable
+    public class PDFGeneratorV1 : IPaperworkGenerator, IDisposable
     {
         public static readonly Version MyVersion = new Version(1, 1);
         public static readonly string PDFMimeType = "application/pdf";
@@ -58,7 +58,7 @@ namespace Paperwork.Services.Generation.v1
         private static Scryber.ICacheProvider _staticCacheProvider = new Scryber.Caching.PDFStaticCacheProvider();
 
 
-        public PDFGenerator(IPaperworkAuthService authService, IPaperworkTracingService tracingService, IPaperworkRemoteFileRequestService fileRequestService, Scryber.ICacheProvider cacheProvider = null)
+        public PDFGeneratorV1(IPaperworkAuthService authService, IPaperworkTracingService tracingService, IPaperworkRemoteFileRequestService fileRequestService, Scryber.ICacheProvider cacheProvider = null)
         {
             AuthService = authService ?? throw new ArgumentNullException(nameof(authService));
             AuthTokens = null;
@@ -84,7 +84,7 @@ namespace Paperwork.Services.Generation.v1
             this.Tracer = this.TracingService.Init(request);
             this.HttpClient = client;
             this.Request = request;
-            this.CacheProvider = this.RenderOptions.Cache == PaperworkRequestCacheOption.None ? new Scryber.Caching.PDFNoCachingProvider() : _staticCacheProvider;
+            //this.CacheProvider = this.RenderOptions.Cache == PaperworkRequestCacheOption.None ? new Scryber.Caching.PDFNoCachingProvider() : _staticCacheProvider;
 
 
             try
@@ -94,11 +94,13 @@ namespace Paperwork.Services.Generation.v1
             }
             finally
             {
-                if(this.RenderOptions.Cache == PaperworkRequestCacheOption.None)
-                {
+                //if(this.RenderOptions.Cache == PaperworkRequestCacheOption.None)
+                //{
                     //Scryber.Drawing.FontFactory.ReleaseLoaded();
-                }
+                //}
             }
+            
+            this.Request = null;
 
             return result;
 
@@ -106,7 +108,8 @@ namespace Paperwork.Services.Generation.v1
 
         protected async virtual Task<PaperworkResult> DoGenerateDocument(PaperworkRequest request, HttpClient client)
         {
-            TemplateConfigV1 template = null;
+            TemplateDefinitionV1 template = null;
+            
 
             using (this.Tracer.Begin(PaperworkGenerationStage.ConfigLoading))
             {
@@ -157,7 +160,7 @@ namespace Paperwork.Services.Generation.v1
                 try
                 {
                     var mainLayout = GetMainLayout(template);
-                    doc = ParseLayoutDocument(mainLayout);
+                    doc = await ParseLayoutDocument(mainLayout);
                     if (null != request.RenderOptions && null != request.RenderOptions.Overlay)
                         this.ApplyOverlayGrid(doc, request.RenderOptions.Overlay);
 
@@ -358,11 +361,11 @@ namespace Paperwork.Services.Generation.v1
         /// <param name="content">The JSON string to convert</param>
         /// <returns></returns>
         /// <exception cref="InvalidDataException">Thrown if the content could not be converted to a valisd</exception>
-        protected virtual TemplateConfigV1 GetTemplateFromContent(string content)
+        protected virtual TemplateDefinitionV1 GetTemplateFromContent(string content)
         {
             try
             {
-                var config = System.Text.Json.JsonSerializer.Deserialize<TemplateConfigV1>(content);
+                var config = System.Text.Json.JsonSerializer.Deserialize<TemplateDefinitionV1>(content);
 
                 if (null == config)
                     throw new InvalidDataException("The deserialized template was null");
@@ -386,11 +389,11 @@ namespace Paperwork.Services.Generation.v1
         /// <summary>
         /// 2. Makes sure that all external resources are loaded using the known http client.
         /// </summary>
-        /// <param name="config"></param>
+        /// <param name="definitionparam>
         /// <exception cref="InvalidDataException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
         /// <returns></returns>
-        protected virtual async Task<bool> EnsureConfigDataLoaded(TemplateConfigV1 config, HttpClient client)
+        protected virtual async Task<bool> EnsureConfigDataLoaded(TemplateDefinitionV1 definition, HttpClient client)
         {
             bool success = true;
 
@@ -405,7 +408,7 @@ namespace Paperwork.Services.Generation.v1
             }
             try
             {
-                var successOne = await config.Load(async (string url, string auth, string mimetype) =>
+                var successOne = await definition.Load(async (string url, string auth, string mimetype) =>
                 {
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Starting the load of config data for " + url);
@@ -420,18 +423,20 @@ namespace Paperwork.Services.Generation.v1
                         request.StartRequest();
 
                         this.Tracer.RegisterRequest(request);
-                        Uri uri = new Uri(url);
+                        
                         
 
                         if (!string.IsNullOrEmpty(auth))
                         {
-                            
-                            if (!this.AuthService.CanFetch(auth, uri))
+#if OUTPUT_TO_CONSOLE
+                            Console.WriteLine("Starting the load of config data for auth " + auth + " with provider : " + this.AuthService.Name);       
+#endif
+                            if (!this.AuthService.CanFetch(auth, url))
                                 throw new ArgumentOutOfRangeException(auth, "The url " + url + "' cannot be retrieved via the authenticated service " + auth);
                             else
                             {
-                                string result = await AuthService.Fetch(client, auth, uri, options);
-                                success = !string.IsNullOrEmpty(result);
+                                object result = await AuthService.Fetch(client, auth, url, options);
+                                success = (result != null);
                                 if (success)
                                 {
                                     request.CompleteRequest(result, success);
@@ -448,7 +453,7 @@ namespace Paperwork.Services.Generation.v1
                         
                         else if (mimetype.StartsWith("text/"))
                         {
-                            var result = await client.GetStringAsync(uri);
+                            var result = await client.GetStringAsync(url);
                             success = !string.IsNullOrEmpty(result);
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Completed load of text config data for " + url);
@@ -458,7 +463,7 @@ namespace Paperwork.Services.Generation.v1
                         }
                         else
                         {
-                            var bin = await client.GetByteArrayAsync(uri);
+                            var bin = await client.GetByteArrayAsync(url);
                             success = bin != null && bin.Length > 0;
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Completed load of binary config data for " + url);
@@ -514,9 +519,9 @@ namespace Paperwork.Services.Generation.v1
         /// <returns>A non-null layout template item</returns>
         /// <exception cref="ArgumentOutOfRangeException">If there is more that one layout with the designated name</exception>
         /// <exception cref="ArgumentNullException">If there is no layout with the designated name</exception>
-        protected virtual TemplateItemContentBase GetMainLayout(TemplateConfigV1 template)
+        protected virtual TemplateDefinitionItem GetMainLayout(TemplateDefinitionV1 template)
         {
-            TemplateItemContentBase mainLayout = null;
+            TemplateDefinitionItem mainLayout = null;
             Dictionary<string, string> otherlayouts = new Dictionary<string, string>();
 
             string mainName = template.MainLayoutName ?? DefaultMainLayoutName;
@@ -557,7 +562,7 @@ namespace Paperwork.Services.Generation.v1
         /// <returns></returns>
         /// <exception cref="Scryber.PDFParserException"></exception>
         /// <exception cref="NullReferenceException"></exception>
-        protected virtual Document ParseLayoutDocument(TemplateItemContentBase item)
+        protected virtual async Task<Document> ParseLayoutDocument(TemplateDefinitionItem item)
         {
             var path = item.BaseSource() ?? "";
             var content = item.Value();
@@ -595,7 +600,7 @@ namespace Paperwork.Services.Generation.v1
 		/// </summary>
 		/// <param name="content"></param>
 		/// <returns></returns>
-        private bool DoCheckIsXHTML(string content)
+        protected bool DoCheckIsXHTML(string content)
         {
             var start = content.IndexOf("<html ", StringComparison.OrdinalIgnoreCase);
             if (start >= 0)
@@ -653,17 +658,17 @@ namespace Paperwork.Services.Generation.v1
         public const string FieldsValuesName = "$fields";
         public const string LayoutsValuesName = "$layouts";
 
-        protected virtual void AddTemplateParametersToDocument(Document doc, TemplateConfigBase config)
+        protected virtual void AddTemplateParametersToDocument(Document doc, TemplateDefinition config)
         {
-            TemplateConfigV1 configV1 = config as TemplateConfigV1;
-            if(null == configV1)
+            TemplateDefinitionV1 definitionV1 = config as TemplateDefinitionV1;
+            if(null == definitionV1)
                 return;
             
             Dictionary<string, object> values = new Dictionary<string, object>();
 
-            if (configV1.Fields != null && configV1.Fields.Count > 0)
+            if (definitionV1.Fields != null && definitionV1.Fields.Count > 0)
             {
-                foreach (var field in configV1.Fields)
+                foreach (var field in definitionV1.Fields)
                 {
                     values.Add(field.ID, field.Value);
                     doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the template field " + FieldsValuesName + "." + field.ID + " to '" + field.Value + "'");
@@ -714,7 +719,7 @@ namespace Paperwork.Services.Generation.v1
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="config"></param>
-        protected virtual void AddTemplateContentToDocument(Document doc, TemplateConfigBase config)
+        protected virtual void AddTemplateContentToDocument(Document doc, TemplateDefinition config)
         {
             //Add the data
 

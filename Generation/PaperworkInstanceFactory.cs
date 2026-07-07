@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Text;
 
-namespace Paperwork.Services.Generation
+namespace Paperwork.Generation
 {
-    /// <summary>
-    /// An implementation of the IPaperworkFactory that holds single instances of the IPaperworkGenerators. Best for single threaded operations.
-    /// </summary>
+	/// <summary>
+	/// An implementation of the IPaperworkFactory that holds single instances of the IPaperworkGenerators. Best for single threaded operations.
+	/// </summary>
 	public class PaperworkInstanceFactory : IPaperworkFactory
 	{
 
-        #region event GenerationProgress + OnGenerationProgress
+		#region event GenerationProgress + OnGenerationProgress
 
 		/// <summary>
 		/// Raised when the document generation progress changes
 		/// </summary>
-        public event EventHandler<GenerationProgressArgs>? GenerationProgress;
+		public event EventHandler<GenerationProgressArgs>? GenerationProgress;
 
 		/// <summary>
 		/// Call when the there is a change in the document generation progress
@@ -27,22 +27,43 @@ namespace Paperwork.Services.Generation
 		}
 
 
-        #endregion
+		#endregion
 
 		//
 		// ivars
 		//
 
-        System.Text.Json.JsonSerializerOptions _serializerOptions;
+		System.Text.Json.JsonSerializerOptions _serializerOptions;
+
+		public System.Text.Json.JsonSerializerOptions SerializerOptions
+		{
+			get => _serializerOptions;
+		}
+
 		List<IPaperworkGeneratorFactory> _knownGenerators;
 
-        HttpClient _httpClient;
+		HttpClient _httpClient;
 
-        IPaperworkAuthService _authService;
-        IPaperworkTracingService _tracingService;
-        IPaperworkRemoteFileRequestService _requestService;
+		IPaperworkAuthService _authService;
+		IPaperworkTracingService _tracingService;
+		IPaperworkRemoteFileRequestService _requestService;
 
-        //
+		protected IPaperworkAuthService AuthService
+		{
+			get => _authService;
+
+		}
+	
+		protected IPaperworkTracingService TracingService
+		{
+			get => _tracingService;
+		}
+		protected IPaperworkRemoteFileRequestService RemoteFileRequestService
+		{
+			get => _requestService;
+		}
+
+		//
         // ctors
         //
 
@@ -69,7 +90,9 @@ namespace Paperwork.Services.Generation
         /// </summary>
         /// <param name="options"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public PaperworkInstanceFactory(System.Text.Json.JsonSerializerOptions options, HttpClient client, IPaperworkAuthService authService, IPaperworkTracingService tracingService, IPaperworkRemoteFileRequestService fileRequestService)
+        public PaperworkInstanceFactory(System.Text.Json.JsonSerializerOptions options, HttpClient client, 
+	        IPaperworkAuthService authService, IPaperworkTracingService tracingService, 
+	        IPaperworkRemoteFileRequestService fileRequestService)
 		{
 			this._serializerOptions = options ?? throw new ArgumentNullException(nameof(options));
 			this._knownGenerators = new List<IPaperworkGeneratorFactory>();
@@ -77,7 +100,8 @@ namespace Paperwork.Services.Generation
             this._httpClient = client ?? throw new ArgumentNullException(nameof(client));
             this._authService = authService ?? throw new ArgumentNullException(nameof(authService));
             this._tracingService = tracingService ?? throw new ArgumentNullException(nameof(tracingService));
-
+            this._requestService = fileRequestService ?? throw new ArgumentNullException(nameof(fileRequestService));
+            
 			this.FillKnownGenerators(_knownGenerators);
 		}
 
@@ -242,7 +266,7 @@ namespace Paperwork.Services.Generation
         /// <param name="generators"></param>
 		protected virtual void FillKnownGenerators(List<IPaperworkGeneratorFactory> generators)
 		{
-			generators.Add(new v1.PDFGeneratorFactory());
+			generators.Add(new v1.PDFGeneratorFactoryV1());
 		}
 
         /// <summary>
@@ -288,6 +312,16 @@ namespace Paperwork.Services.Generation
             }
 
             return sb.ToString();
+        }
+
+        public void Dispose()
+        {
+	        this.Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+	        
         }
 	}
 }

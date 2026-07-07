@@ -1,7 +1,7 @@
 ﻿using System;
 using Scryber;
 
-namespace Paperwork.Services.Generation
+namespace Paperwork.Generation
 {
 	public class EmptyFileRequestService : IPaperworkRemoteFileRequestService
 	{

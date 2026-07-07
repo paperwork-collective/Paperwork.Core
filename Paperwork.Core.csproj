@@ -7,7 +7,7 @@
 
     <!-- Package identity -->
     <PackageId>Paperwork.Core</PackageId>
-    <Version>9.6.0.1</Version>
+    <Version>9.6.0.4</Version>
     <Authors>paperwork-collective</Authors>
     <Description>Core PDF generation library for Paperwork — fluent builder API over the Scryber rendering engine.</Description>
     <PackageTags>pdf scryber html-to-pdf document-generation</PackageTags>
@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Scryber.Core" Version="9.6.0-beta" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Scryber.Core" Version="9.6.0.4-beta" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
 </Project>

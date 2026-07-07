@@ -1,7 +1,6 @@
-using Paperwork.Services;
-using Paperwork.Services.Auth;
-using Paperwork.Services.Generation;
-using Paperwork.Services.Tracing;
+using Paperwork.Auth;
+using Paperwork.Generation;
+using Paperwork.Tracing;
 
 namespace Paperwork
 {
@@ -104,7 +103,7 @@ namespace Paperwork
         // ── Terminal ──────────────────────────────────────────────────────────
 
         /// <summary>Constructs and returns the configured <see cref="PaperworkInstanceFactory"/>.</summary>
-        public PaperworkInstanceFactory Build()
+        public IPaperworkFactory Build()
         {
             var auth = new PaperworkAuthWrapperService(_authServices);
             var tracing = _tracingService ?? new PaperworkTracingService();

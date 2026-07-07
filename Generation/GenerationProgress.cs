@@ -1,5 +1,5 @@
 ﻿using System;
-namespace Paperwork.Services.Generation
+namespace Paperwork.Generation
 {
 	public enum ProgressType
 	{

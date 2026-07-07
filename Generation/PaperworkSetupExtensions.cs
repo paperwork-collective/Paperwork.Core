@@ -1,9 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using Paperwork.Services;
-using Paperwork.Services.Auth;
-using Paperwork.Services.Generation;
+using Paperwork.Auth;
+using Paperwork.Generation;
 
-namespace Paperwork
+namespace Paperwork.Generation
 {
     public static class PaperworkSetupExtensions
     {

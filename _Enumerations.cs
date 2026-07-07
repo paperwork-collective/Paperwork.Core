@@ -1,5 +1,5 @@
 ﻿using System;
-namespace Paperwork.Services
+namespace Paperwork
 {
     public enum PaperworkGenerationStage
     {

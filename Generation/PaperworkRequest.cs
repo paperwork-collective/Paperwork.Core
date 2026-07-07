@@ -1,20 +1,20 @@
 ﻿using System;
-namespace Paperwork.Services.Generation
+namespace Paperwork.Generation
 {
     public class PaperworkRequest
     {
         /// <summary>
-        /// Gets or sets the TemplateConfig content as a string
+        /// Gets or sets the TemplateDefinition content as a string
         /// </summary>
         public string Content { get; set; }
 
         /// <summary>
-        /// Gets or sets the Major version of the template config schema - Default is 1
+        /// Gets or sets the Major version of the template definition schema - Default is 1
         /// </summary>
         public int MajorVersion { get; set; }
 
         /// <summary>
-        /// Gets or sets the Minor version of the Template config schema - Default is 1
+        /// Gets or sets the Minor version of the Template definition schema - Default is 1
         /// </summary>
         public int MinorVersion { get; set; }
 
@@ -102,14 +102,14 @@ namespace Paperwork.Services.Generation
 
         public PaperworkRequestLogOption LogLevel { get; set; }
 
-        public PaperworkRequestCacheOption Cache { get; set; }
+        //public PaperworkRequestCacheOption Cache { get; set; }
         
         public PaperworkOverlayGrid Overlay { get; set; }
 
         public PaperworkRequestRenderOptions()
         {
             this.LogLevel = PaperworkRequestLogOption.Off;
-            this.Cache = PaperworkRequestCacheOption.Static;
+            //this.Cache = PaperworkRequestCacheOption.Static;
         }
     }
 

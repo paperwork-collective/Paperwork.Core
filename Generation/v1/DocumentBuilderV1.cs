@@ -2,11 +2,8 @@ using System.Text.Json;
 using Scryber;
 using Scryber.Components;
 using Scryber.Styles;
-using Paperwork.Services;
-using Paperwork.Services.Generation;
-using Paperwork.Services.Generation.v1;
 
-namespace Paperwork
+namespace Paperwork.Generation.v1
 {
     /// <summary>
     /// Fluent builder that constructs and generates a Paperwork PDF document.
@@ -24,10 +21,10 @@ namespace Paperwork
     ///     .BuildBytesAsync();
     /// </code>
     /// </remarks>
-    public class DocumentBuilder : IDocumentBuilder
+    public class DocumentBuilderV1 : IDocumentBuilder
     {
         private readonly IPaperworkFactory _factory;
-        private readonly TemplateConfigV1 _config;
+        private readonly TemplateDefinitionV1 _definition;
         private readonly List<PaperworkRequestField> _overrides;
         private readonly PaperworkRequestRenderOptions _renderOptions;
 
@@ -45,15 +42,22 @@ namespace Paperwork
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        public DocumentBuilder(IPaperworkFactory factory)
+        public DocumentBuilderV1(IPaperworkFactory factory)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
-            _config = new TemplateConfigV1();
+            _definition = new TemplateDefinitionV1();
             _overrides = new List<PaperworkRequestField>();
             _renderOptions = new PaperworkRequestRenderOptions();
             _componentLayouts = new Dictionary<string, IComponent>();
             _directStyleGroups = new List<(string?, StyleGroup)>();
             _directDataObjects = new List<(string, object)>();
+        }
+
+        public DocumentBuilderV1(IPaperworkFactory factory, TemplateDefinitionV1 definition)
+        {
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            _definition = definition ?? throw new ArgumentNullException(nameof(definition));
+            
         }
 
         private bool HasDirectObjects =>
@@ -63,7 +67,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithLayout(string htmlContent, string name = "main")
         {
-            _config.Layout.Add(new LayoutContent
+            _definition.Layout.Add(new LayoutContent
             {
                 Name = name,
                 Content = htmlContent,
@@ -89,7 +93,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithLayoutUrl(string url, string name = "main", string? auth = null)
         {
-            _config.Layout.Add(new LayoutContent
+            _definition.Layout.Add(new LayoutContent
             {
                 Name = name,
                 Source = url,
@@ -103,7 +107,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithStyle(string cssContent, string? name = null, string? format = null)
         {
-            _config.Style.Add(new StyleContent
+            _definition.Style.Add(new StyleContent
             {
                 Name = name ?? $"style{++_styleCount}",
                 Content = cssContent,
@@ -132,7 +136,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithStyleUrl(string url, string? name = null, string? auth = null, string? format = null)
         {
-            _config.Style.Add(new StyleContent
+            _definition.Style.Add(new StyleContent
             {
                 Name = name ?? $"style{++_styleCount}",
                 Source = url,
@@ -147,7 +151,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithData(string name, string jsonContent, string? format = null)
         {
-            _config.Data.Add(new DataContent
+            _definition.Data.Add(new DataContent
             {
                 Name = name,
                 Content = jsonContent,
@@ -178,7 +182,7 @@ namespace Paperwork
 
         public IDocumentBuilder WithDataUrl(string name, string url, string? auth = null, string? format = null)
         {
-            _config.Data.Add(new DataContent
+            _definition.Data.Add(new DataContent
             {
                 Name = name,
                 Source = url,
@@ -193,12 +197,12 @@ namespace Paperwork
 
         public IDocumentBuilder WithField(string id, string value, string type = "string")
         {
-            _config.Fields ??= new List<DataField>();
-            var existing = _config.Fields.FirstOrDefault(p => p.ID == id);
+            _definition.Fields ??= new List<DataField>();
+            var existing = _definition.Fields.FirstOrDefault(p => p.ID == id);
             if (existing != null)
                 existing.Value = value;
             else
-                _config.Fields.Add(new DataField { ID = id, Value = value, Type = type });
+                _definition.Fields.Add(new DataField { ID = id, Value = value, Type = type });
 
             var existingOverride = _overrides.FirstOrDefault(p => p.Id == id);
             if (existingOverride != null)
@@ -229,8 +233,13 @@ namespace Paperwork
 
         // ── Terminal operations ───────────────────────────────────────────────
 
-        public Task<PaperworkResult> BuildAsync()
-            => HasDirectObjects ? BuildDirectAsync() : BuildViaFactoryAsync();
+        public async Task<PaperworkResult> BuildAsync()
+        {
+            //if (HasDirectObjects)
+            //    return await BuildDirectAsync();
+            //else
+                return await BuildViaFactoryAsync();
+        }
 
         public async Task<byte[]> BuildBytesAsync()
         {
@@ -255,11 +264,11 @@ namespace Paperwork
 
         private Task<PaperworkResult> BuildViaFactoryAsync()
         {
-            if (_config.Layout.Count == 0)
+            if (_definition.Layout.Count == 0)
                 throw new InvalidOperationException(
                     "At least one layout must be added before building.");
 
-            var configJson = JsonSerializer.Serialize(_config, new JsonSerializerOptions
+            var configJson = JsonSerializer.Serialize(_definition, new JsonSerializerOptions
             {
                 WriteIndented = false,
                 PropertyNamingPolicy = null   // TemplateConfigV1 uses [JsonPropertyName] attributes
@@ -280,7 +289,7 @@ namespace Paperwork
         private async Task<PaperworkResult> BuildDirectAsync()
         {
             Document doc;
-            var mainName = _config.MainLayoutName ?? TemplateConfigV1.DefaultMainLayoutName;
+            var mainName = _definition.MainLayoutName ?? TemplateDefinitionV1.DefaultMainLayoutName;
 
             // Prefer a pre-built Document registered under the main layout name
             if (_componentLayouts.TryGetValue(mainName, out var mainComponent) &&
@@ -291,12 +300,12 @@ namespace Paperwork
             else
             {
                 // Fall back to parsing the main layout string from the config
-                if (_config.Layout.Count == 0)
+                if (_definition.Layout.Count == 0)
                     throw new InvalidOperationException(
                         "At least one layout must be added before building.");
 
-                var layout = _config.Layout.FirstOrDefault(l => l.Name == mainName)
-                    ?? _config.Layout[0];
+                var layout = _definition.Layout.FirstOrDefault(l => l.Name == mainName)
+                    ?? _definition.Layout[0];
 
                 if (string.IsNullOrEmpty(layout.Content))
                     throw new InvalidOperationException(
@@ -312,12 +321,12 @@ namespace Paperwork
                 doc.Params["$layouts"] = _componentLayouts;
 
             // Apply string CSS from config as HTMLStyle elements
-            if (doc is Scryber.Html.Components.HTMLDocument htmlDoc && _config.Style.Count > 0)
+            if (doc is Scryber.Html.Components.HTMLDocument htmlDoc && _definition.Style.Count > 0)
             {
                 htmlDoc.Head ??= new Scryber.Html.Components.HTMLHead();
-                for (int i = 0; i < _config.Style.Count; i++)
+                for (int i = 0; i < _definition.Style.Count; i++)
                 {
-                    var item = _config.Style[i];
+                    var item = _definition.Style[i];
                     if (!string.IsNullOrEmpty(item.Content))
                     {
                         htmlDoc.Head.Contents.Add(new Scryber.Html.Components.HTMLStyle
@@ -334,7 +343,7 @@ namespace Paperwork
                 doc.Styles.Add(group);
 
             // Apply data from config (JSON strings)
-            foreach (var item in _config.Data)
+            foreach (var item in _definition.Data)
             {
                 var value = (item.Content ?? "").Trim();
                 if (string.IsNullOrEmpty(value)) continue;
@@ -356,8 +365,8 @@ namespace Paperwork
 
             // Apply parameters as fields dictionary
             var fields = new Dictionary<string, object>();
-            if (_config.Fields != null)
-                foreach (var p in _config.Fields)
+            if (_definition.Fields != null)
+                foreach (var p in _definition.Fields)
                     fields[p.ID] = p.Value;
             foreach (var o in _overrides)
                 fields[o.Id] = o.Value;

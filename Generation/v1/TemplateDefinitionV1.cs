@@ -1,11 +1,11 @@
-﻿//#define OUTPUT_TO_CONSOLE
+﻿#define OUTPUT_TO_CONSOLE
 
 using System;
 using System.Text.Json.Serialization;
 
-namespace Paperwork.Services.Generation.v1
+namespace Paperwork.Generation.v1
 {
-    public class TemplateConfigV1 : TemplateConfigBase
+    public class TemplateDefinitionV1 : TemplateDefinition
     {
         public const string DefaultMainLayoutName = "main";
         public const string DataParameterPrefix = "{{";
@@ -27,26 +27,26 @@ namespace Paperwork.Services.Generation.v1
         public List<DataField> Fields { get; set; }
 
 
-        public TemplateConfigV1() : base(1, 1, DefaultMainLayoutName)
+        public TemplateDefinitionV1() : base(1, 1, DefaultMainLayoutName)
         {
             this.Data = new List<DataContent>();
             this.Layout = new List<LayoutContent>();
             this.Style = new List<StyleContent>();
         }
 
-        public override List<TemplateItemContentBase> DataContent()
+        public override List<TemplateDefinitionItem> DataContent()
         {
-            return new List<TemplateItemContentBase>(Data.ToArray());
+            return new List<TemplateDefinitionItem>(Data.ToArray());
         }
 
-        public override List<TemplateItemContentBase> StyleContent()
+        public override List<TemplateDefinitionItem> StyleContent()
         {
-            return new List<TemplateItemContentBase>(Style.ToArray());
+            return new List<TemplateDefinitionItem>(Style.ToArray());
         }
 
-        public override List<TemplateItemContentBase> LayoutContent()
+        public override List<TemplateDefinitionItem> LayoutContent()
         {
-            return new List<TemplateItemContentBase>(Layout.ToArray()); ;
+            return new List<TemplateDefinitionItem>(Layout.ToArray()); ;
         }
 
 
@@ -252,7 +252,7 @@ namespace Paperwork.Services.Generation.v1
         Base64
     }
 
-    public class ContentRefBase : TemplateItemContentBase
+    public class ContentRefBase : TemplateDefinitionItem
     {
         [JsonPropertyName("name")]
         public override string Name { get; set; }
@@ -350,11 +350,11 @@ namespace Paperwork.Services.Generation.v1
 
             if (string.IsNullOrEmpty(this.ID))
             {
-                return TemplateConfigV1.DataParameterPrefix + "UNNAMED" + TemplateConfigV1.DataParameterPostfix;
+                return TemplateDefinitionV1.DataParameterPrefix + "UNNAMED" + TemplateDefinitionV1.DataParameterPostfix;
             }
             else
             {
-                return TemplateConfigV1.DataParameterPrefix + this.ID + TemplateConfigV1.DataParameterPostfix;
+                return TemplateDefinitionV1.DataParameterPrefix + this.ID + TemplateDefinitionV1.DataParameterPostfix;
             }
         }
 

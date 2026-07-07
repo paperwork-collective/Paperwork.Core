@@ -1,7 +1,7 @@
 ﻿using System;
-using Paperwork.Services.Generation;
+using Paperwork.Generation;
 
-namespace Paperwork.Services
+namespace Paperwork
 {
 	public interface IPaperworkGenerator : IDisposable
 	{

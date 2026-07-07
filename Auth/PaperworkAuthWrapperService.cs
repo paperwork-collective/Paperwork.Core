@@ -1,9 +1,15 @@
 using System;
 
-namespace Paperwork.Services.Auth
+namespace Paperwork.Auth
 {
     public class PaperworkAuthWrapperService : IPaperworkAuthService
     {
+
+        public string Name
+        {
+            get { return "PaperworkAuthWrapperService: " + this._instances.Count.ToString(); }
+        }
+        
         private List<IPaperworkAuthService> _instances;
 
         /// <summary>
@@ -25,19 +31,25 @@ namespace Paperwork.Services.Auth
                 services ?? throw new ArgumentNullException(nameof(services)));
         }
 
-        public bool CanFetch(string authName, Uri toUri)
+        public bool AddAuth(IPaperworkAuthService service)
+        {
+            _instances.Add(service);
+            return true;
+        }
+
+        public bool CanFetch(string authName, string toUri)
         {
             var service = GetWrappedService(authName, toUri, false);
             return null != service;
         }
 
-        public async Task<string> Fetch(HttpClient client, string authName, Uri url, PaperworkAuthOptions options)
+        public async Task<object> Fetch(HttpClient client, string authName, string url, PaperworkAuthOptions options)
         {
             var service = GetWrappedService(authName, url, true);
             return await service.Fetch(client, authName, url, options);
         }
 
-        protected IPaperworkAuthService GetWrappedService(string authName, Uri url, bool throwNotFound)
+        protected IPaperworkAuthService GetWrappedService(string authName, string url, bool throwNotFound)
         {
             for (var i = 0; i < _instances.Count; i++)
             {

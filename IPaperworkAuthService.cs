@@ -1,11 +1,15 @@
 ﻿using System;
-namespace Paperwork.Services
+using Paperwork.Auth;
+
+namespace Paperwork
 {
 	public interface IPaperworkAuthService
 	{
-		public bool CanFetch(string authName, Uri uri);
+		string Name { get; }
+		
+		bool CanFetch(string authName, string uri);
 
-		public Task<string> Fetch(HttpClient client, string authName, Uri uri, Auth.PaperworkAuthOptions options);
+		Task<object> Fetch(HttpClient client, string authName, string uri, Auth.PaperworkAuthOptions options);
 	}
 
 	

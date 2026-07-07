@@ -1,7 +1,8 @@
 ﻿using System;
-using Paperwork.Services.Generation;
+using Paperwork.Generation;
+using Scryber;
 
-namespace Paperwork.Services
+namespace Paperwork
 {
 	public interface IPaperworkRemoteFileRequestService
 	{

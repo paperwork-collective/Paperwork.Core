@@ -1,12 +1,14 @@
 ﻿using System;
-namespace Paperwork.Services.Generation
+using Paperwork.Generation;
+
+namespace Paperwork.Generation
 {
-    public abstract class TemplateConfigBase
+    public abstract class TemplateDefinition
     {
 
         public Version Version { get; private set; }
 
-        public TemplateConfigBase(int major, int minor, string mainlayout)
+        public TemplateDefinition(int major, int minor, string mainlayout)
         {
             this.Version = new Version(major, minor);
             this.MainLayoutName = mainlayout;
@@ -14,11 +16,11 @@ namespace Paperwork.Services.Generation
 
         public virtual string MainLayoutName { get; set; }
 
-        public abstract List<TemplateItemContentBase> LayoutContent();
+        public abstract List<TemplateDefinitionItem> LayoutContent();
 
-        public abstract List<TemplateItemContentBase> DataContent();
+        public abstract List<TemplateDefinitionItem> DataContent();
 
-        public abstract List<TemplateItemContentBase> StyleContent();
+        public abstract List<TemplateDefinitionItem> StyleContent();
 
         public async Task<bool> Load(LoadActionAsync loadCallback)
         {
@@ -39,7 +41,7 @@ namespace Paperwork.Services.Generation
         }
     }
 
-    public abstract class TemplateItemContentBase
+    public abstract class TemplateDefinitionItem
     {
         public virtual string Name { get; set; }
 
@@ -61,7 +63,7 @@ namespace Paperwork.Services.Generation
             return string.Empty;
         }
 
-        public TemplateItemContentBase()
+        public TemplateDefinitionItem()
         {
             this.Name = string.Empty;
         }

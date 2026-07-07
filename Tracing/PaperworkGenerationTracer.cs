@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using Paperwork.Services.Generation;
+using Paperwork.Generation;
 
-namespace Paperwork.Services.Tracing
+namespace Paperwork.Tracing
 {
 	public class PaperworkGenerationTracer : IPaperworkGenerationTracer
 	{

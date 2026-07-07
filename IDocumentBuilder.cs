@@ -1,4 +1,4 @@
-using Paperwork.Services.Generation;
+using Paperwork.Generation;
 using Scryber;
 using Scryber.Components;
 using Scryber.Styles;
@@ -11,6 +11,8 @@ namespace Paperwork
     /// </summary>
     public interface IDocumentBuilder
     {
+        
+        
         // ── Layout ────────────────────────────────────────────────────────────
 
         /// <summary>Adds an inline HTML/XHTML layout string.</summary>
