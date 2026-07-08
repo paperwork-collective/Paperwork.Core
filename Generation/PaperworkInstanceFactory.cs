@@ -173,18 +173,8 @@ namespace Paperwork.Generation
             }
             else
             {
-	            if (request.Fields != null)
-		            Console.WriteLine("Deserialized request with " + request.Fields.Count + " parameters");
-	            else
-					Console.WriteLine("The deserialized request had no fields on it");
-	            
                 result = await DoGenerateDocument(request);
             }
-
-            //if (null == result.Log)
-            //    result.Log = new PaperworkGenerationLog();
-
-            //result.Log.AddEntry(new PaperworkGenerationTraceLogEntry(7, "Finished", "All done", 0, 0));
 
             return System.Text.Json.JsonSerializer.Serialize<PaperworkResult>(result);
 		}

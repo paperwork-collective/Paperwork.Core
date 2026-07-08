@@ -1,4 +1,4 @@
-﻿//#define OUTPUT_TO_CONSOLE
+﻿#define OUTPUT_TO_CONSOLE
 
 using System;
 using System.Diagnostics;
@@ -129,7 +129,7 @@ namespace Paperwork.Generation.v1
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResult("The content could not be understood. " + ex.Message, this.Tracer, ex);
+                    return CreateErrorResult("301. The template content could not be understood.", this.Tracer, ex);
                 }
 
                 //2. Check that all the remote sources are loaded
@@ -144,7 +144,7 @@ namespace Paperwork.Generation.v1
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResult("The remote data could not be loaded within the template. " + ex.Message, this.Tracer, ex);
+                    return CreateErrorResult("302. The remote data could not be loaded within the template.", this.Tracer, ex);
                 }
 
             }
@@ -154,13 +154,32 @@ namespace Paperwork.Generation.v1
             //3. Parse the document and the other template content from the template.
 
             Document doc;
-
+            var mainLayout = GetMainLayout(template);
+            
             using (this.Tracer.Begin(PaperworkGenerationStage.TemplateParsing))
             {
                 try
                 {
-                    var mainLayout = GetMainLayout(template);
                     doc = await ParseLayoutDocument(mainLayout);
+                    if (null != request.RenderOptions && null != request.RenderOptions.Overlay)
+                        this.ApplyOverlayGrid(doc, request.RenderOptions.Overlay);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResult("303. Document could not be created from the layout, check the syntax and sources", this.Tracer, ex);
+                }
+
+                //4. Handle remote requests with authentication
+
+                doc.RemoteFileRegistered += Doc_RemoteFileRegistered;
+
+
+            }
+            
+            using (this.Tracer.Begin(PaperworkGenerationStage.TemplateParsing))
+            {
+                try
+                {
                     if (null != request.RenderOptions && null != request.RenderOptions.Overlay)
                         this.ApplyOverlayGrid(doc, request.RenderOptions.Overlay);
 
@@ -173,11 +192,11 @@ namespace Paperwork.Generation.v1
                     //Add or override any that are set on the request
                     AddFieldsToDocument(doc, request);
 
-                    AddTemplateContentToDocument(doc, template);
+                    AddTemplateContentToDocument(doc, template, mainLayout.Name);
                 }
                 catch (Exception ex)
                 {
-                    return CreateErrorResult("The root document template could not be loaded : " + ex.Message, this.Tracer, ex);
+                    return CreateErrorResult("304. Could not add the supporting template content to the document.", this.Tracer, ex);
                 }
 
                 //4. Handle remote requests with authentication
@@ -204,7 +223,7 @@ namespace Paperwork.Generation.v1
             }
             catch (Exception ex)
             {
-                return CreateErrorResult("Document creation failed during processing : " + ex.Message, this.Tracer , ex);
+                return CreateErrorResult("305. The generation process could not complete.", this.Tracer , ex);
             }
 
 
@@ -303,7 +322,7 @@ namespace Paperwork.Generation.v1
 
         
 
-        private PaperworkResult CreateErrorResult(string v, IPaperworkGenerationTracer tracer, Exception err)
+        private PaperworkResult CreateErrorResult(string v, IPaperworkGenerationTracer tracer, Exception err, int code = GenerationErrors.GenerationErrorCode)
         {
             string stack = "";
             if (null != err)
@@ -311,7 +330,7 @@ namespace Paperwork.Generation.v1
                 var full = new StringBuilder();
                 while (null != err)
                 {
-                    var s = "------------------------------\r\n" + err.Message + "\r\n" + err.StackTrace + "\r\n";
+                    var s = "------------------------------\r\n" + err.Message + "\r\n"; // + err.StackTrace + "\r\n";
                     if (full.Length > 0)
                         full.Insert(0, s);
                     else
@@ -328,9 +347,9 @@ namespace Paperwork.Generation.v1
             return new PaperworkResult()
             {
                 Document = null,
-                Message = string.Format(GenerationErrors.GenerationErrorMessage, v),
+                Message = v,
                 GenerationDuration = 0,
-                ResultCode = GenerationErrors.GenerationErrorCode,
+                ResultCode = code,
                 Success = false,
                 Error = stack,
                 Progress = 1.0,
@@ -474,6 +493,9 @@ namespace Paperwork.Generation.v1
                     }
                     catch (Exception ex)
                     {
+#if OUTPUT_TO_CONSOLE
+                        Console.WriteLine("Failed the load of config data for auth " + auth + " with provider : " + this.AuthService.Name + ": " + ex.Message);       
+#endif
                         if (null != request && !request.IsCompleted)
                         {
                             try
@@ -719,7 +741,7 @@ namespace Paperwork.Generation.v1
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="config"></param>
-        protected virtual void AddTemplateContentToDocument(Document doc, TemplateDefinition config)
+        protected virtual void AddTemplateContentToDocument(Document doc, TemplateDefinition config, string mainlayout)
         {
             //Add the data
 
@@ -864,7 +886,10 @@ namespace Paperwork.Generation.v1
                     {
                         var item = (LayoutContent)templates[i];
                         var key = item.Name;
-
+                        
+                        if(key.Equals(mainlayout))
+                            continue; //never add the main layout - if it's used it's a circular reference.
+                        
                         try
                         {
                             var content = item.Value();
