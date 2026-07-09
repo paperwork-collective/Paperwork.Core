@@ -164,7 +164,21 @@ namespace Paperwork.Generation.v1
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Item type is source so loading the content from " +  url);
 #endif
-                            value = (await loader(url, config.Auth, mimetype)) as string;
+                            object result = (await loader(url, config.Auth, mimetype));
+                            if (result is Stream stream)
+                            {
+                                result = new StreamReader(stream).ReadToEnd();
+                                stream.Close();
+                            }
+
+                            if (result is string str)
+                            {
+                                value = str;
+                            }
+                            else if(null != result)
+                            {
+                                value = result.ToString();
+                            }
 
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Received content result for loader for " + url + " with length " + (null == value ? "0" : value.Length));
@@ -199,7 +213,21 @@ namespace Paperwork.Generation.v1
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Item type is source so loading the content from " +  url);
 #endif
-                    value = (await loader(url, config.Auth, mimetype)) as string;
+                    object result = (await loader(url, config.Auth, mimetype));
+                    if (result is Stream stream)
+                    {
+                        result = new StreamReader(stream).ReadToEnd();
+                        stream.Close();
+                    }
+
+                    if (result is string str)
+                    {
+                        value = str;
+                    }
+                    else if(null != result)
+                    {
+                        value = result.ToString();
+                    }
 
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Received content result for loader for " + url + " with length " + (null == value ? "0" : value.Length));

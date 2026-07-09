@@ -438,8 +438,10 @@ namespace Paperwork.Generation.v1
                     {
                         request = new Scryber.RemoteFileRequest("Config", url, 
                             Scryber.Caching.PDFCacheProvider.NoCacheDuration, (raiser, request, response) => { return true;});
+
+                        if (!request.IsExecuting)
+                            request.StartRequest();
                         
-                        request.StartRequest();
 
                         this.Tracer.RegisterRequest(request);
                         
@@ -458,12 +460,15 @@ namespace Paperwork.Generation.v1
                                 success = (result != null);
                                 if (success)
                                 {
-                                    request.CompleteRequest(result, success);
+                                    if (request.IsExecuting)
+                                        request.CompleteRequest(result, success);
                                 }
                                 else
                                 {
 #if OUTPUT_TO_CONSOLE
                                     Console.WriteLine("Failed to load the content for " + url + ". An empty string was returned");
+                                    if (request.IsExecuting)
+                                        request.CompleteRequest(null, success);
 #endif
                                 }
                                 return result;
