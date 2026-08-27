@@ -111,7 +111,10 @@ namespace Paperwork.Generation.v1
                 foreach (var p in parameters)
                 {
                     var toReplace = p.ToString();
-                    updated = updated.Replace(toReplace, System.Uri.EscapeDataString(p.Value));
+                    // Only scalar values make sense substituted into a url - a non-scalar
+                    // (e.g. a List Group's array of entries) falls back to its JSON/string
+                    // representation via ToString() rather than failing to compile/throwing.
+                    updated = updated.Replace(toReplace, System.Uri.EscapeDataString(p.Value?.ToString() ?? string.Empty));
                 }
 
                 return updated;
@@ -139,7 +142,7 @@ namespace Paperwork.Generation.v1
                 {
                     type = Enum.Parse<ConfigType>(config.Type, true);
 #if OUTPUT_TO_CONSOLE
-                    Console.WriteLine("Found item type of " + type);
+                    Console.WriteLine("Found item type of " + type + " with name " + config.Name);
 #endif
                     switch (type)
                     {
@@ -355,8 +358,14 @@ namespace Paperwork.Generation.v1
         [JsonPropertyName("id")]
         public string ID { get; set; }
 
+        /// <summary>
+        /// The field's value. Widened from string to object so non-scalar values
+        /// (e.g. a List Group's array-of-entry-objects) can round-trip through
+        /// JSON deserialization without throwing - see PaperworkRequestField.Value
+        /// for the same reasoning.
+        /// </summary>
         [JsonPropertyName("value")]
-        public string Value { get; set; }
+        public object Value { get; set; }
 
         [JsonPropertyName("name")]
         public string Name { get; set; }

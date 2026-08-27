@@ -91,7 +91,42 @@ namespace Paperwork.Generation
 
         public string Type { get; set; }
 
-        public string Value { get; set; }
+        /// <summary>
+        /// The field's value. Widened from string to object so non-scalar values
+        /// (e.g. a List Group's array-of-entry-objects) can round-trip through
+        /// JSON deserialization without throwing - System.Text.Json deserializes
+        /// an object-typed property into a boxed JsonElement, which Scryber's
+        /// binding engine already consumes directly elsewhere (see the JSON data
+        /// params handling in PDFGeneratorV1).
+        /// </summary>
+        public object Value { get; set; }
+
+        /// <summary>
+        /// True if this field has a genuinely empty value - a null reference, an
+        /// empty/whitespace string, or a JsonElement representing null/undefined/an
+        /// empty string. Non-scalar values (arrays, objects) are never "empty" here,
+        /// even if they contain zero items - that's a valid List Group with no
+        /// entries yet, not a missing value.
+        /// </summary>
+        public bool HasEmptyValue()
+        {
+            if (Value == null) return true;
+            if (Value is string s) return string.IsNullOrEmpty(s);
+            if (Value is System.Text.Json.JsonElement el)
+            {
+                switch (el.ValueKind)
+                {
+                    case System.Text.Json.JsonValueKind.Null:
+                    case System.Text.Json.JsonValueKind.Undefined:
+                        return true;
+                    case System.Text.Json.JsonValueKind.String:
+                        return string.IsNullOrEmpty(el.GetString());
+                    default:
+                        return false;
+                }
+            }
+            return false;
+        }
 
     }
 

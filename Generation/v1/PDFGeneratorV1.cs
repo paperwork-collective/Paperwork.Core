@@ -198,12 +198,7 @@ namespace Paperwork.Generation.v1
                 {
                     return CreateErrorResult("304. Could not add the supporting template content to the document.", this.Tracer, ex);
                 }
-
-                //4. Handle remote requests with authentication
-
-                doc.RemoteFileRegistered += Doc_RemoteFileRegistered;
-
-
+                
             }
 
             //5. Process the actual document
@@ -298,10 +293,14 @@ namespace Paperwork.Generation.v1
             }
         }
 
+        
         private void Doc_RemoteFileRegistered(object sender, Scryber.RemoteFileRequestEventArgs args)
         {
 #if OUTPUT_TO_CONSOLE
-            Console.WriteLine("A remote request has been registered for " + args.Request.FilePath);
+            var log = args.Request.Owner.Document.TraceLog;
+            log.Add(TraceLevel.Message, "PDFGenerator", "Received event for remote file request " +  args.Request.StubFilePathForLog);
+
+            //throw new InvalidOperationException("Need the stack");
 #endif
 
             IPaperworkRemoteFileRequestor requestor;
