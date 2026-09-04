@@ -367,9 +367,9 @@ namespace Paperwork.Generation.v1
             var fields = new Dictionary<string, object>();
             if (_definition.Fields != null)
                 foreach (var p in _definition.Fields)
-                    fields[p.ID] = p.Value;
+                    fields[p.ID] = UnwrapFieldValue(p.Value);
             foreach (var o in _overrides)
-                fields[o.Id] = o.Value;
+                fields[o.Id] = UnwrapFieldValue(o.Value);
             doc.Params["$fields"] = fields;
 
             // Render
@@ -428,6 +428,45 @@ namespace Paperwork.Generation.v1
             return isXhtml
                 ? Document.ParseDocument(reader, sourcePath, sourceType)
                 : Document.ParseHtmlDocument(reader, sourcePath, sourceType);
+        }
+
+        // PaperworkRequestField.Value (and DataField.Value) are declared `object` -
+        // System.Text.Json deserializes a JSON string/number/bool into a boxed
+        // JsonElement rather than the native CLR type. Scryber's binding engine
+        // unwraps a JsonElement correctly when the PARENT it navigates from is
+        // itself already a JsonElement (nested property access, e.g. a List/Single
+        // Group's {sections:[...]} value), but a direct `$fields.<id>` dictionary
+        // lookup returns the boxed JsonElement as-is - fine for text interpolation
+        // (ToString() on a string-kind element still prints the value), but not
+        // reliable for binding into a strongly-typed property like Image.Src,
+        // which is exactly what broke `<img src="{{$fields.office}}">` for the
+        // Map field type. Unwrapping scalar kinds to their native CLR type here,
+        // once, at the single place fields get built, fixes it for every field
+        // type without touching Scryber. Object/Array values are left as
+        // JsonElement - unwrapping those would require reconstructing nested
+        // dictionaries/lists for no benefit, since that's exactly the shape
+        // Scryber's own JsonElement-parent traversal already handles correctly.
+        private static object UnwrapFieldValue(object value)
+        {
+            if (value is JsonElement element)
+            {
+                switch (element.ValueKind)
+                {
+                    case JsonValueKind.String:
+                        return element.GetString();
+                    case JsonValueKind.Number:
+                        return element.TryGetInt64(out var l) ? l : element.GetDouble();
+                    case JsonValueKind.True:
+                        return true;
+                    case JsonValueKind.False:
+                        return false;
+                    case JsonValueKind.Null:
+                        return null;
+                    default:
+                        return element;
+                }
+            }
+            return value;
         }
     }
 }
