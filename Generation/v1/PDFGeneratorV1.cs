@@ -188,9 +188,18 @@ namespace Paperwork.Generation.v1
                     
                     //Add the base parameters
                     AddTemplateParametersToDocument(doc, template);
-                    
+
                     //Add or override any that are set on the request
                     AddFieldsToDocument(doc, request);
+
+                    //Fold the working Dictionary<string,object> of per-field
+                    //JsonElement values (built above) into a single JsonElement
+                    //document, so $fields is one JSON structure throughout -
+                    //top-level and nested field access then both go through
+                    //Scryber's normal JsonElement property resolution, rather
+                    //than a top-level hop short-circuiting through a plain
+                    //Dictionary and skipping JSON-type normalization.
+                    FinalizeFieldsParameter(doc);
 
                     AddTemplateContentToDocument(doc, template, mainLayout.Name);
                 }
@@ -734,9 +743,31 @@ namespace Paperwork.Generation.v1
             }
         }
 
+        /// <summary>
+        /// Converts doc.Params[$fields] from the plain Dictionary&lt;string,object&gt;
+        /// built by AddTemplateParametersToDocument/AddFieldsToDocument (whose
+        /// values are individually-typed JsonElement fragments from the request/
+        /// template JSON) into one JsonElement document. Scryber's expression
+        /// engine normalizes JsonElement/JToken property values (JSON number ->
+        /// double etc) whenever the parent it walks into is itself a JsonElement/
+        /// JObject - but not when the parent is a plain IDictionary, which is
+        /// exactly what a bare Dictionary&lt;string,object&gt; is. Left as a
+        /// Dictionary, only the second and later hops of a nested field path
+        /// (once inside a JsonElement value) got normalized; a top-level
+        /// $fields.xxx access did not. Serializing to a single JsonElement makes
+        /// every hop - top-level or nested - go through the same normalized path.
+        /// </summary>
+        protected virtual void FinalizeFieldsParameter(Document doc)
+        {
+            if (doc.Params.TryGetValue(FieldsValuesName, out var raw) && raw is Dictionary<string, object> values)
+            {
+                doc.Params[FieldsValuesName] = JsonSerializer.SerializeToElement(values);
+            }
+        }
+
         protected virtual void AddContextToDocument(Document doc, PaperworkRequest request)
         {
-            
+
         }
         #region protected virtual void AddTemplateContentToDocument(Document doc, TemplateConfigBase config)
 
