@@ -192,6 +192,9 @@ namespace Paperwork.Generation.v1
                     //Add or override any that are set on the request
                     AddFieldsToDocument(doc, request);
 
+                    //Add or override any collection field values that are set on the request
+                    AddCollectionValuesToDocument(doc, request);
+
                     //Fold the working Dictionary<string,object> of per-field
                     //JsonElement values (built above) into a single JsonElement
                     //document, so $fields is one JSON structure throughout -
@@ -200,6 +203,9 @@ namespace Paperwork.Generation.v1
                     //than a top-level hop short-circuiting through a plain
                     //Dictionary and skipping JSON-type normalization.
                     FinalizeFieldsParameter(doc);
+
+                    //Same treatment for $collection
+                    FinalizeCollectionParameter(doc);
 
                     AddTemplateContentToDocument(doc, template, mainLayout.Name);
                 }
@@ -691,6 +697,7 @@ namespace Paperwork.Generation.v1
         #endregion
 
         public const string FieldsValuesName = "$fields";
+        public const string CollectionValuesName = "$collection";
         public const string LayoutsValuesName = "$layouts";
 
         protected virtual void AddTemplateParametersToDocument(Document doc, TemplateDefinition config)
@@ -743,6 +750,36 @@ namespace Paperwork.Generation.v1
             }
         }
 
+        protected virtual void AddCollectionValuesToDocument(Document doc, PaperworkRequest request)
+        {
+            if (request.CollectionFields != null && request.CollectionFields.Count > 0)
+            {
+                Dictionary<string, object> values = doc.Params[CollectionValuesName] as Dictionary<string, object>;
+
+                if (null == values)
+                    values = new Dictionary<string, object>();
+
+                foreach (var field in request.CollectionFields)
+                {
+                    switch (field.Type)
+                    {
+                        case("string"):
+                        default:
+                            //TODO: Validate the type and options.
+                            values[field.Id] = field.Value;
+                            doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the request collection field " + CollectionValuesName + "." + field.Id + " to '" + field.Value + "'");
+                            break;
+                    }
+                }
+
+                doc.Params[CollectionValuesName] = values;
+            }
+            else
+            {
+                doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","No request collection fields to set on document");
+            }
+        }
+
         /// <summary>
         /// Converts doc.Params[$fields] from the plain Dictionary&lt;string,object&gt;
         /// built by AddTemplateParametersToDocument/AddFieldsToDocument (whose
@@ -762,6 +799,18 @@ namespace Paperwork.Generation.v1
             if (doc.Params.TryGetValue(FieldsValuesName, out var raw) && raw is Dictionary<string, object> values)
             {
                 doc.Params[FieldsValuesName] = JsonSerializer.SerializeToElement(values);
+            }
+        }
+
+        /// <summary>
+        /// Same treatment as FinalizeFieldsParameter, but for doc.Params[$collection] -
+        /// see FinalizeFieldsParameter for the full rationale.
+        /// </summary>
+        protected virtual void FinalizeCollectionParameter(Document doc)
+        {
+            if (doc.Params.TryGetValue(CollectionValuesName, out var raw) && raw is Dictionary<string, object> values)
+            {
+                doc.Params[CollectionValuesName] = JsonSerializer.SerializeToElement(values);
             }
         }
 

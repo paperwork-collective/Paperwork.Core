@@ -42,6 +42,12 @@ namespace Paperwork.Generation
         public List<PaperworkRequestField> Fields { get; set; }
 
         /// <summary>
+        /// Gets or sets the list of custom field values from the collection the
+        /// current template belongs to (if any), exposed to templates as $collection
+        /// </summary>
+        public List<PaperworkRequestField> CollectionFields { get; set; }
+
+        /// <summary>
         /// Gets or sets the rendering output options for this request
         /// </summary>
         public PaperworkRequestRenderOptions RenderOptions { get; set; }
@@ -66,6 +72,7 @@ namespace Paperwork.Generation
             this.RenderOptions = new PaperworkRequestRenderOptions();
             this.AuthTokens = new List<PaperworkRequestAuthToken>();
             this.Fields = new List<PaperworkRequestField>();
+            this.CollectionFields = new List<PaperworkRequestField>();
         }
     }
 
