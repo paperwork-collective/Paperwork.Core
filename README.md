@@ -18,7 +18,7 @@ using var factory = PaperworkFactory.Create(httpClient).Build();
 //using var factory = PaperworkFactory.Create(); - own internal httpClient
 
 var bytes = await factory.NewDocument()
-    .WithLayout("<html><body><p data-content='{{fields[\"title\"]}}'></p></body></html>")
+    .WithLayout("<html><body><p data-content='{{$fields[\"title\"]}}'></p></body></html>")
     .WithField("title", "Hello World")
     .BuildBytesAsync();
 
@@ -85,7 +85,7 @@ builder.WithData("order", new { total = 1200 });
 
 ### Fields
 
-Scalar values accessible in templates as `$fields["key"]`:
+Values accessible in templates as `$fields["key"]`:
 
 ```csharp
 builder.WithField("date", "2026-03-25");
@@ -93,8 +93,23 @@ builder.WithField("title", "Invoice #1001");
 ```
 
 ```html
-<p data-content='{{fields["title"]}}'></p>
+<p data-content='{{$fields["title"]}}'></p>
 ```
+
+`WithField(id, value, type)` only accepts a **scalar** `string` value. A field whose value is a nested object or array (e.g. a Designer-authored `single`/`list`-type field) can't be built up this way — load it via `FromConfig`/`FromDefinition` instead (below), which preserves nested values as `JsonElement`.
+
+### Loading a full template config
+
+```csharp
+// From a stream/file — deserializes straight into TemplateDefinitionV1,
+// preserving any nested field values as JsonElement rather than flattening them
+using var stream = File.OpenRead("template-config.json");
+var builder = factory.FromConfig(stream);
+
+var bytes = await builder.BuildBytesAsync();
+```
+
+The JSON is the same `{"schemaVers": "1.1", "template": {...}}` shape a published Paperwork template is stored as — see [Paperwork.CLI's config-format docs](https://github.com/paperwork-collective/Paperwork.CLI/blob/main/docs/config-format.md) for the full schema, including nested field values.
 
 ### Generate
 
@@ -125,6 +140,11 @@ Inside HTML templates, use handlebars-style expressions:
 <p data-content='{{.label}}'></p>
 {{/each}}
 ```
+
+## Related packages
+
+- [`Paperwork.Core.Extensions`](https://github.com/paperwork-collective/Paperwork.Core.Extensions) — shared portal config, `$assets`/`$maps` remote-file resolution, and cross-platform auth handlers (Atlassian, Firebase Asset) for consumers that need them. Not a dependency of this package — install it separately if you need that functionality.
+- [`Paperwork.CLI`](https://github.com/paperwork-collective/Paperwork.CLI) — command-line PDF generation built on this package.
 
 ## License
 
