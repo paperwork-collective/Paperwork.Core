@@ -57,7 +57,11 @@ namespace Paperwork.Generation.v1
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _definition = definition ?? throw new ArgumentNullException(nameof(definition));
-            
+            _overrides = new List<PaperworkRequestField>();
+            _renderOptions = new PaperworkRequestRenderOptions();
+            _componentLayouts = new Dictionary<string, IComponent>();
+            _directStyleGroups = new List<(string?, StyleGroup)>();
+            _directDataObjects = new List<(string, object)>();
         }
 
         private bool HasDirectObjects =>
