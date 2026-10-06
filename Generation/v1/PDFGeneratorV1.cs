@@ -633,6 +633,8 @@ namespace Paperwork.Generation.v1
             if (null == doc)
                 throw new NullReferenceException("No document was returned from the parsed template content, please check the validity of the content.");
 
+            PaperworkDocumentDefaults.Apply(doc);
+
             return doc;
         }
 

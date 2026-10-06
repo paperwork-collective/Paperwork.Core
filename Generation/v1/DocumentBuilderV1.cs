@@ -429,9 +429,12 @@ namespace Paperwork.Generation.v1
                 : Scryber.ParseSourceType.RemoteFile;
 
             using var reader = new StringReader(content);
-            return isXhtml
+            var doc = isXhtml
                 ? Document.ParseDocument(reader, sourcePath, sourceType)
                 : Document.ParseHtmlDocument(reader, sourcePath, sourceType);
+
+            PaperworkDocumentDefaults.Apply(doc);
+            return doc;
         }
 
         // PaperworkRequestField.Value (and DataField.Value) are declared `object` -
