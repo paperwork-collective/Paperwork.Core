@@ -161,6 +161,10 @@ namespace Paperwork.Generation.v1
                 try
                 {
                     doc = await ParseLayoutDocument(mainLayout);
+                    // Here rather than inside ParseLayoutDocument, so the defaults
+                    // apply however the document was parsed - a subclass that
+                    // replaces the parsing still gets them.
+                    this.ApplyDocumentDefaults(doc);
                     if (null != request.RenderOptions && null != request.RenderOptions.Overlay)
                         this.ApplyOverlayGrid(doc, request.RenderOptions.Overlay);
                 }
@@ -594,6 +598,23 @@ namespace Paperwork.Generation.v1
 
         #endregion
 
+        #region protected virtual void ApplyDocumentDefaults(Document doc)
+
+        /// <summary>
+        /// Called once the main layout has been parsed into a document, before any
+        /// fields or data are added to it. The base implementation sets the Creator
+        /// and Producer to Paperwork's own (see <see cref="PaperworkDocumentDefaults"/>),
+        /// leaving alone anything the template has set itself. Override to set
+        /// different values, or to add further document information.
+        /// </summary>
+        /// <param name="doc">The parsed document.</param>
+        protected virtual void ApplyDocumentDefaults(Document doc)
+        {
+            PaperworkDocumentDefaults.Apply(doc);
+        }
+
+        #endregion
+
         #region protected virtual Document ParseLayoutDocument(TemplateItemContentBase item)
 
         /// <summary>
@@ -632,8 +653,6 @@ namespace Paperwork.Generation.v1
 
             if (null == doc)
                 throw new NullReferenceException("No document was returned from the parsed template content, please check the validity of the content.");
-
-            PaperworkDocumentDefaults.Apply(doc);
 
             return doc;
         }
