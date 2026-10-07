@@ -326,6 +326,19 @@ namespace Paperwork.Generation.v1
             if (null != this.Tracer)
                 this.Tracer.RegisterRequest(args.Request);
 
+            // Refused before any handler (or Scryber itself) can fetch it. The request
+            // is completed as failed with the reason, so it is treated as any other
+            // resource that could not be loaded: logged, and - in strict mode - fatal.
+            if (!this.IsRemoteAccessAllowed(args.Request.FilePath, out var refusal))
+            {
+                args.Request.Owner.Document.TraceLog.Add(Scryber.TraceLevel.Error, "Generator", refusal);
+
+                if (!args.Request.IsExecuting)
+                    args.Request.StartRequest();
+                args.Request.CompleteRequest(null, false, new PaperworkRemoteAccessDeniedException(args.Request.FilePath, refusal));
+                return;
+            }
+
             if (this.RemoteFileService != null && this.RemoteFileService.ShouldHandle(args.Request, out requestor))
             {
                 requestor.HandleRequest(this.HttpClient, args.Request);
@@ -454,6 +467,11 @@ namespace Paperwork.Generation.v1
 
                     try
                     {
+                        // Before anything is asked of the host: a template's own remote
+                        // data, layout and style sources are subject to the same policy
+                        // as the images and fonts its content asks for.
+                        this.EnsureRemoteAccessAllowed(url);
+
                         request = new Scryber.RemoteFileRequest("Config", url, 
                             Scryber.Caching.PDFCacheProvider.NoCacheDuration, (raiser, request, response) => { return true;});
 
@@ -594,6 +612,30 @@ namespace Paperwork.Generation.v1
                 throw new ArgumentNullException("The content of the layout '" + mainName + "' in the template configuration (V1.1) is empty, and cannot be used");
 
             return mainLayout;
+        }
+
+        #endregion
+
+        #region protected virtual bool IsRemoteAccessAllowed(string path, out string reason) + EnsureRemoteAccessAllowed
+
+        /// <summary>
+        /// Whether this document may fetch from a url. The base implementation asks
+        /// the process-wide policy (<see cref="PaperworkRemoteAccess"/>), which allows
+        /// everything until one is installed. Override to apply a different rule for
+        /// one kind of generator.
+        /// </summary>
+        /// <param name="path">The path or url the document has asked for.</param>
+        /// <param name="reason">Why it was refused, when it was.</param>
+        protected virtual bool IsRemoteAccessAllowed(string path, out string reason)
+        {
+            return PaperworkRemoteAccess.IsAllowed(path, out reason);
+        }
+
+        /// <summary>Throws <see cref="PaperworkRemoteAccessDeniedException"/> when the url is refused.</summary>
+        protected void EnsureRemoteAccessAllowed(string path)
+        {
+            if (!this.IsRemoteAccessAllowed(path, out var reason))
+                throw new PaperworkRemoteAccessDeniedException(path, reason);
         }
 
         #endregion
