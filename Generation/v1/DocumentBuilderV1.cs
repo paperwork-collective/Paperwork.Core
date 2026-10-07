@@ -239,9 +239,12 @@ namespace Paperwork.Generation.v1
 
         public async Task<PaperworkResult> BuildAsync()
         {
-            //if (HasDirectObjects)
-            //    return await BuildDirectAsync();
-            //else
+            // A ready-made Document, StyleGroup or data object can't be put into a
+            // request, so those render directly; everything else goes through the
+            // factory (and its auth and remote-file handling).
+            if (HasDirectObjects)
+                return await BuildDirectAsync();
+            else
                 return await BuildViaFactoryAsync();
         }
 
