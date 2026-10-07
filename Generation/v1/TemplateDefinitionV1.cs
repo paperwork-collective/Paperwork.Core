@@ -138,6 +138,21 @@ namespace Paperwork.Generation.v1
                 ConfigType type;
                 ConfigFormat format;
 
+                // A published template file names a remote item "Remote" and keeps its
+                // url in "content" - the Designer and Viewer rewrite that to "Source" /
+                // "source" before generating (view.html.js _convert_1_1_TemplateItem).
+                // Accepted here as well, so a published file can be generated from as it
+                // is stored - which is what the CLI does.
+                if (string.Equals(config.Type, "Remote", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.IsNullOrEmpty(config.Source))
+                    {
+                        config.Source = config.Content;
+                        config.Content = null;
+                    }
+                    config.Type = ConfigType.Source.ToString();
+                }
+
                 if (!string.IsNullOrEmpty(config.Type))
                 {
                     type = Enum.Parse<ConfigType>(config.Type, true);
