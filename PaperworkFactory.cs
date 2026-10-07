@@ -26,6 +26,7 @@ namespace Paperwork
         private readonly bool _ownsHttpClient;
         private readonly HttpClient _httpClient;
         private readonly List<IPaperworkAuthService> _authServices = new();
+        private readonly List<IPaperworkGeneratorFactory> _generators = new();
 
         private IPaperworkTracingService? _tracingService;
         private IPaperworkRemoteFileRequestService? _fileRequestService;
@@ -102,6 +103,16 @@ namespace Paperwork
 
         // ── Terminal ──────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Adds a generator factory of your own. It is preferred over the built-in
+        /// generator for any request it can handle; the last one added is asked first.
+        /// </summary>
+        public PaperworkFactory WithGenerator(IPaperworkGeneratorFactory generator)
+        {
+            _generators.Add(generator ?? throw new ArgumentNullException(nameof(generator)));
+            return this;
+        }
+
         /// <summary>Constructs and returns the configured <see cref="PaperworkInstanceFactory"/>.</summary>
         public IPaperworkFactory Build()
         {
@@ -114,7 +125,7 @@ namespace Paperwork
                 PropertyNameCaseInsensitive = true
             };
 
-            return new PaperworkInstanceFactory(serializerOptions, _httpClient, auth, tracing, fileRequests);
+            return new PaperworkInstanceFactory(serializerOptions, _httpClient, auth, tracing, fileRequests, _generators);
         }
 
         /// <summary>

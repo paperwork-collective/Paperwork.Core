@@ -93,6 +93,19 @@ namespace Paperwork.Generation
         public PaperworkInstanceFactory(System.Text.Json.JsonSerializerOptions options, HttpClient client, 
 	        IPaperworkAuthService authService, IPaperworkTracingService tracingService, 
 	        IPaperworkRemoteFileRequestService fileRequestService)
+	        : this(options, client, authService, tracingService, fileRequestService, null)
+		{
+		}
+
+        /// <summary>
+        /// As above, with further generator factories of the caller's own. They are
+        /// preferred over the built-in ones for any request they can handle - the
+        /// most recently added is asked first.
+        /// </summary>
+        public PaperworkInstanceFactory(System.Text.Json.JsonSerializerOptions options, HttpClient client, 
+	        IPaperworkAuthService authService, IPaperworkTracingService tracingService, 
+	        IPaperworkRemoteFileRequestService fileRequestService,
+	        IEnumerable<IPaperworkGeneratorFactory>? generators)
 		{
 			this._serializerOptions = options ?? throw new ArgumentNullException(nameof(options));
 			this._knownGenerators = new List<IPaperworkGeneratorFactory>();
@@ -103,6 +116,9 @@ namespace Paperwork.Generation
             this._requestService = fileRequestService ?? throw new ArgumentNullException(nameof(fileRequestService));
             
 			this.FillKnownGenerators(_knownGenerators);
+
+			if (generators != null)
+				this._knownGenerators.AddRange(generators.Where(g => g != null));
 		}
 
         #endregion
