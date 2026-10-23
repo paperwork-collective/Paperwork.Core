@@ -220,7 +220,9 @@ namespace Paperwork.Generation
                 {
                     try
                     {
+#if OUTPUT_TO_CONSOLE
                         Console.WriteLine("Starting execution with request start time of " + request.EpochStartOffset);
+#endif
 
                         generator.GenerationProgress += GeneratorProgressUpdate;
                         result = await generator.GenerateDocument(request, _httpClient);

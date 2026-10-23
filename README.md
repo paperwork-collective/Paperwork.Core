@@ -38,8 +38,11 @@ var factory = PaperworkFactory.Create(httpClient)
     .WithAuth(new MyAuthService())
     .Build();
 
-// ASP.NET Core DI
+// ASP.NET Core DI - uses the app's HttpClient, tracing and file request services if registered
 services.AddPaperwork();
+
+// ...and pass the configuration to the engine, for the "Scryber" appsettings section
+services.AddPaperwork(builder.Configuration);
 ```
 
 ### Layout
@@ -48,13 +51,13 @@ services.AddPaperwork();
 // Inline HTML string
 builder.WithLayout("<html><body>...</body></html>");
 
-// From a file
+// From a file - relative images and stylesheets are found next to the file
 builder.WithLayoutFile("invoice.html");
 
 // From a URL (fetched at render time)
 builder.WithLayoutUrl("https://cdn.example.com/template.html");
 
-// Pre-built Document
+// Pre-built Document - configure it first (Info, RenderOptions, events...), it is generated as it is
 builder.WithLayout(document);
 
 // Add custom partials that can be accessed via $layouts["name"]
@@ -82,6 +85,8 @@ builder.WithDataFile("order", "order.json");
 // Any object — set directly on doc.Params
 builder.WithData("order", new { total = 1200 });
 ```
+
+A pre-built `Document`, `StyleGroup` or data object is passed to the factory alongside the request, so every document is generated the same way - with the factory's auth, remote file handling and logging - whatever the inputs.
 
 ### Fields
 
@@ -120,9 +125,21 @@ byte[] pdf = await builder.BuildBytesAsync();
 // Save to file
 await builder.SaveAsync("output.pdf");
 
+// Write to a stream, e.g. a response body
+await builder.SaveAsync(stream);
+
 // Full result with metadata
 PaperworkResult result = await builder.BuildAsync();
 ```
+
+### Logging
+
+```csharp
+// Append the trace log to the end of the document
+builder.WithLogLevel(PaperworkRequestLogOption.Messages);
+```
+
+The default, `PaperworkRequestLogOption.Template`, uses the template's own `<?paperwork append-log='true' ?>` setting. `Off` turns the log off, whatever the template says.
 
 ## Template Binding
 

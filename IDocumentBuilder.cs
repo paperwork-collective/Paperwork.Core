@@ -88,7 +88,10 @@ namespace Paperwork
         /// <summary>Uses Scryber's async render path (default: false).</summary>
         IDocumentBuilder UseAsync(bool useAsync = true);
 
-        /// <summary>Sets the Scryber trace log level.</summary>
+        /// <summary>
+        /// Sets the trace log level, appended to the end of the document. The default,
+        /// <see cref="PaperworkRequestLogOption.Template"/>, uses the template's own setting.
+        /// </summary>
         IDocumentBuilder WithLogLevel(PaperworkRequestLogOption level);
 
         // ── Terminal operations ───────────────────────────────────────────────
@@ -101,5 +104,8 @@ namespace Paperwork
 
         /// <summary>Generates the document and writes the PDF to <paramref name="outputPath"/>.</summary>
         Task SaveAsync(string outputPath);
+
+        /// <summary>Generates the document and writes the PDF to the <paramref name="output"/> stream.</summary>
+        Task SaveAsync(Stream output);
     }
 }

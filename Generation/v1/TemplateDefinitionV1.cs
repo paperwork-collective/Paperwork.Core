@@ -1,6 +1,4 @@
-﻿#define OUTPUT_TO_CONSOLE
-
-using System;
+﻿using System;
 using System.Text.Json.Serialization;
 
 namespace Paperwork.Generation.v1
@@ -64,8 +62,8 @@ namespace Paperwork.Generation.v1
                     success |= loaded;
                 }
             }
-            else
-                success = false;
+            // No layouts is not a load failure: the document may be supplied ready-made,
+            // and a missing main layout is reported when the document is created.
 
             if (null != Style && this.Style.Count > 0)
             {

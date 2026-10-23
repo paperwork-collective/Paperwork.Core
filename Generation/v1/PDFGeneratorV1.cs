@@ -1,6 +1,4 @@
-﻿#define OUTPUT_TO_CONSOLE
-
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -135,7 +133,9 @@ namespace Paperwork.Generation.v1
                 //2. Check that all the remote sources are loaded
                 try
                 {
+#if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Starting the load of the config data");
+#endif
                     dataLoaded = await EnsureConfigDataLoaded(template, client);
 
                     if (!dataLoaded)
@@ -154,13 +154,20 @@ namespace Paperwork.Generation.v1
             //3. Parse the document and the other template content from the template.
 
             Document doc;
-            var mainLayout = GetMainLayout(template);
-            
+            var direct = request.DirectContent;
+            var mainName = template.MainLayoutName ?? DefaultMainLayoutName;
+
+            // A ready-made Document from the document builder is generated as it is,
+            // rather than parsing the main layout.
+            Document directDoc = null;
+            if (null != direct && direct.Layouts.TryGetValue(mainName, out var mainComponent))
+                directDoc = mainComponent as Document;
+
             using (this.Tracer.Begin(PaperworkGenerationStage.TemplateParsing))
             {
                 try
                 {
-                    doc = await ParseLayoutDocument(mainLayout);
+                    doc = directDoc ?? await ParseLayoutDocument(GetMainLayout(template));
                     // Here rather than inside ParseLayoutDocument, so the defaults
                     // apply however the document was parsed - a subclass that
                     // replaces the parsing still gets them.
@@ -211,7 +218,11 @@ namespace Paperwork.Generation.v1
                     //Same treatment for $collection
                     FinalizeCollectionParameter(doc);
 
-                    AddTemplateContentToDocument(doc, template, mainLayout.Name);
+                    AddTemplateContentToDocument(doc, template, mainName);
+
+                    //Add any ready-made styles, data and layouts from the document builder
+                    if (null != direct && !direct.IsEmpty)
+                        AddDirectContentToDocument(doc, direct, mainName);
                 }
                 catch (Exception ex)
                 {
@@ -274,7 +285,12 @@ namespace Paperwork.Generation.v1
 
         private void UpdateDocumentTraceLevel(Document doc, PaperworkRequestLogOption loglevel)
         {
-            if (loglevel > PaperworkRequestLogOption.Off)
+            if (loglevel == PaperworkRequestLogOption.Template)
+            {
+                //Leave the document's own setting - e.g. an append-log processing instruction
+                return;
+            }
+            else if (loglevel > PaperworkRequestLogOption.Off)
             {
                 doc.AppendTraceLog = true;
 
@@ -606,7 +622,7 @@ namespace Paperwork.Generation.v1
             }
 
             if (null == mainLayout)
-                throw new ArgumentOutOfRangeException("There is no layout found with the name '" + mainLayout + "'. Ensure that the configured main layout name matches a template in the configuration");
+                throw new ArgumentOutOfRangeException("There is no layout found with the name '" + mainName + "'. Ensure that the configured main layout name matches a template in the configuration");
 
             if (string.IsNullOrEmpty(mainLayout.Value()))
                 throw new ArgumentNullException("The content of the layout '" + mainName + "' in the template configuration (V1.1) is empty, and cannot be used");
@@ -1065,6 +1081,54 @@ namespace Paperwork.Generation.v1
             }
             
         }
+
+        #region protected virtual void AddDirectContentToDocument(Document doc, PaperworkRequestDirectContent direct, string mainlayout)
+
+        /// <summary>
+        /// 3.4. Adds the ready-made style groups, data objects and component layouts from the
+        /// document builder. Data objects are added after the template data, so they replace
+        /// any template data with the same name.
+        /// </summary>
+        protected virtual void AddDirectContentToDocument(Document doc, PaperworkRequestDirectContent direct, string mainlayout)
+        {
+            foreach (var group in direct.Styles)
+            {
+                doc.Styles.Add(group);
+                doc.TraceLog.Add(TraceLevel.Message, "Generator", "Added a style group to the document styles");
+            }
+
+            foreach (var item in direct.Data)
+            {
+                doc.Params[item.Key] = item.Value;
+                doc.TraceLog.Add(TraceLevel.Message, "Generator", "Set the request data for " + item.Key + " to an object value");
+            }
+
+            Dictionary<string, object> layouts = null;
+            foreach (var item in direct.Layouts)
+            {
+                if (item.Key.Equals(mainlayout))
+                    continue; //the main layout is the document itself
+
+                if (null == layouts)
+                {
+                    //Keep any template layouts alongside the components
+                    layouts = new Dictionary<string, object>();
+                    if (doc.Params.TryGetValue(LayoutsValuesName, out var existing) && existing is Dictionary<string, string> strings)
+                    {
+                        foreach (var str in strings)
+                            layouts[str.Key] = str.Value;
+                    }
+                }
+
+                layouts[item.Key] = item.Value;
+                doc.TraceLog.Add(TraceLevel.Message, "Generator", "Added the component layout " + LayoutsValuesName + "." + item.Key + " to the document");
+            }
+
+            if (null != layouts)
+                doc.Params[LayoutsValuesName] = layouts;
+        }
+
+        #endregion
 
         /// <summary>
 		/// Deserializes a single JSON data value.

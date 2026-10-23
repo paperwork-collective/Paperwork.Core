@@ -58,6 +58,14 @@ namespace Paperwork.Generation
 		public long EpochStartOffset { get; set; }
 
         /// <summary>
+        /// Ready-made objects from the document builder - a parsed Document, style groups
+        /// and data objects - that cannot be serialized into the request. Not part of the
+        /// JSON request; set in-process only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public PaperworkRequestDirectContent? DirectContent { get; set; }
+
+        /// <summary>
         /// Creates a new Generation request
         /// </summary>
         public PaperworkRequest()
@@ -74,6 +82,27 @@ namespace Paperwork.Generation
             this.Fields = new List<PaperworkRequestField>();
             this.CollectionFields = new List<PaperworkRequestField>();
         }
+    }
+
+    /// <summary>
+    /// In-process content for a request, added to the document as it is generated.
+    /// </summary>
+    public class PaperworkRequestDirectContent
+    {
+        /// <summary>
+        /// Ready-made components by layout name. A Document under the main layout name is
+        /// used as the document to generate, rather than parsing the main layout; the
+        /// others are added to the named layouts ($layouts).
+        /// </summary>
+        public Dictionary<string, Scryber.IComponent> Layouts { get; } = new();
+
+        /// <summary>Style groups added to the document styles.</summary>
+        public List<Scryber.Styles.StyleGroup> Styles { get; } = new();
+
+        /// <summary>Data objects added to the document parameters by name, after the template data.</summary>
+        public List<KeyValuePair<string, object>> Data { get; } = new();
+
+        public bool IsEmpty => Layouts.Count == 0 && Styles.Count == 0 && Data.Count == 0;
     }
 
     public class PaperworkRequestAuthToken
@@ -179,6 +208,11 @@ namespace Paperwork.Generation
 
     public enum PaperworkRequestLogOption
     {
+        /// <summary>
+        /// Use the template's own setting (an append-log processing instruction), or no log
+        /// if the template has none. The default for the document builder.
+        /// </summary>
+        Template = -1,
         Off = 0,
         Errors = 1,
         Warnings = 2,
