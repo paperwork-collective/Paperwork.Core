@@ -36,15 +36,16 @@ namespace Paperwork.Generation
 
         /// <summary>
         /// Registers core Paperwork services, and passes the configuration to the
-        /// document engine, so the "Scryber" section (fonts, imaging, output, tracing and
-        /// so on) applies to every document.
+        /// document engine, so the "Paperwork" (or "Scryber") section - fonts, imaging,
+        /// parsing, output, tracing and so on - applies to every document.
+        /// See <see cref="PaperworkConfiguration.Init"/>.
         /// </summary>
         public static IServiceCollection AddPaperwork(this IServiceCollection services, IConfiguration configuration)
         {
             if (null == configuration)
                 throw new ArgumentNullException(nameof(configuration));
 
-            Scryber.ServiceProvider.Init(configuration);
+            PaperworkConfiguration.Init(configuration);
             return services.AddPaperwork();
         }
     }

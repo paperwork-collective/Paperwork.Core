@@ -41,9 +41,14 @@ var factory = PaperworkFactory.Create(httpClient)
 // ASP.NET Core DI - uses the app's HttpClient, tracing and file request services if registered
 services.AddPaperwork();
 
-// ...and pass the configuration to the engine, for the "Scryber" appsettings section
+// ...and pass the configuration to the engine, for the "Paperwork" (or "Scryber") appsettings section
 services.AddPaperwork(builder.Configuration);
+
+// Without DI - once at startup
+PaperworkConfiguration.Init(configuration);
 ```
+
+The engine options (Fonts, Imaging, Parsing, Output, Tracing...) can be set in a `"Paperwork"` or `"Scryber"` section of the configuration. Both are read, and a value in `"Paperwork"` replaces the same value in `"Scryber"`.
 
 ### Layout
 
