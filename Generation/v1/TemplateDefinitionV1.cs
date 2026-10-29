@@ -24,6 +24,13 @@ namespace Paperwork.Generation.v1
         [JsonPropertyName("fields")]
         public List<DataField> Fields { get; set; }
 
+        /// <summary>
+        /// Gets or sets the optional security for the document - permissions, encryption and an open password.
+        /// Null for no restrictions and no encryption.
+        /// </summary>
+        [JsonPropertyName("security")]
+        public TemplateSecurity Security { get; set; }
+
 
         public TemplateDefinitionV1() : base(1, 1, DefaultMainLayoutName)
         {

@@ -177,6 +177,18 @@ namespace Paperwork.Generation
         
         public PaperworkOverlayGrid Overlay { get; set; }
 
+        /// <summary>
+        /// Gets or sets the password needed to open the document, when the template's security requires one.
+        /// It is never written to a log, the result or an error message.
+        /// </summary>
+        public string UserPassword { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this request is a preview (e.g. in the designer). A preview applies the template's
+        /// restrictions, but does not need, or use, a password to open the document.
+        /// </summary>
+        public bool Preview { get; set; }
+
         public PaperworkRequestRenderOptions()
         {
             this.LogLevel = PaperworkRequestLogOption.Off;

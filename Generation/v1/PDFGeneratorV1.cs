@@ -130,6 +130,10 @@ namespace Paperwork.Generation.v1
                     return CreateErrorResult("301. The template content could not be understood.", this.Tracer, ex);
                 }
 
+                //A document that needs a password to open is never made without one (unless it is a preview)
+                if (IsUserPasswordMissing(template.Security, this.RenderOptions))
+                    return CreateErrorResult(GenerationErrors.UserPasswordRequiredMessage, this.Tracer, null, GenerationErrors.UserPasswordRequiredCode);
+
                 //2. Check that all the remote sources are loaded
                 try
                 {
@@ -228,7 +232,16 @@ namespace Paperwork.Generation.v1
                 {
                     return CreateErrorResult("304. Could not add the supporting template content to the document.", this.Tracer, ex);
                 }
-                
+
+                try
+                {
+                    ApplyTemplateSecurity(doc, template.Security, this.RenderOptions);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResult("306. The template security could not be applied to the document.", this.Tracer, ex);
+                }
+
             }
 
             //5. Process the actual document
@@ -1150,6 +1163,100 @@ namespace Paperwork.Generation.v1
             }
 
             return result;
+        }
+
+        #endregion
+
+        #region protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity security, PaperworkRequestRenderOptions options)
+
+        /// <summary>
+        /// Returns true if the template's security needs a password to open the document, and the request has none.
+        /// A preview does not need one.
+        /// </summary>
+        protected static bool IsUserPasswordMissing(TemplateSecurity security, PaperworkRequestRenderOptions options)
+        {
+            if (null == security || !security.RequireUserPassword)
+                return false;
+
+            if (null != options && options.Preview)
+                return false;
+
+            return null == options || string.IsNullOrEmpty(options.UserPassword);
+        }
+
+        /// <summary>
+        /// 5. Applies the template's security section to the document - the permissions, the encryption and the passwords.
+        /// The owner password is a new random one for each document, that is never stored or shown.
+        /// The template wins over any print-restrictions meta in the layout, as the permissions are applied again once the document is bound.
+        /// </summary>
+        /// <remarks>The open password is never written to the log.</remarks>
+        protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity security, PaperworkRequestRenderOptions options)
+        {
+            if (null == security)
+                return;
+
+            var log = doc.TraceLog;
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (null != security.Allow)
+            {
+                foreach (var word in security.Allow)
+                {
+                    var trimmed = (word ?? string.Empty).Trim();
+                    if (Array.IndexOf(TemplateSecurity.AllowWords, trimmed.ToLowerInvariant()) >= 0)
+                        allowed.Add(trimmed);
+                    else if (log.ShouldLog(TraceLevel.Warning))
+                        log.Add(TraceLevel.Warning, "Generator", "The security permission '" + trimmed + "' is not known, and was ignored. Use any of " + string.Join(", ", TemplateSecurity.AllowWords));
+                }
+            }
+
+            if (!string.IsNullOrEmpty(security.Encryption) && !string.Equals(security.Encryption, TemplateSecurity.Encryption128Bit, StringComparison.OrdinalIgnoreCase)
+                && log.ShouldLog(TraceLevel.Warning))
+                log.Add(TraceLevel.Warning, "Generator", "The security encryption '" + security.Encryption + "' is not supported, so 128bit was used");
+
+            if (!string.IsNullOrEmpty(security.OwnerPassword) && !string.Equals(security.OwnerPassword, TemplateSecurity.AutoOwnerPassword, StringComparison.OrdinalIgnoreCase)
+                && log.ShouldLog(TraceLevel.Warning))
+                log.Add(TraceLevel.Warning, "Generator", "Only an automatic owner password is supported, so the owner password in the template was not used");
+
+            //a preview has the restrictions, but is not asked for a password to open it
+            var preview = null != options && options.Preview;
+            var user = preview || null == options ? null : options.UserPassword;
+            if (string.IsNullOrEmpty(user))
+                user = null;
+
+            ApplyTemplatePermissions(doc.RenderOptions.Permissions, allowed);
+            doc.DataBound += (sender, args) => ApplyTemplatePermissions(doc.RenderOptions.Permissions, allowed);
+
+            doc.RenderOptions.PasswordProvider = new Scryber.PDF.Secure.DocumentPasswordProvider(CreateOwnerPassword(), user);
+
+            if (log.ShouldLog(TraceLevel.Message))
+                log.Add(TraceLevel.Message, "Generator", "Applied the template security with 128bit encryption, allowing " +
+                    (allowed.Count == 0 ? "nothing" : string.Join(", ", allowed)) +
+                    (null != user ? ", and a password to open the document" : (security.RequireUserPassword ? ", and no password to open the document as this is a preview" : "")));
+        }
+
+        /// <summary>
+        /// Sets all the permissions off, then the allowed ones back on, using the same groupings as the print-restrictions meta.
+        /// </summary>
+        private static void ApplyTemplatePermissions(Scryber.PDF.Secure.PDFDocumentPermissions permissions, HashSet<string> allowed)
+        {
+            permissions.Type = Scryber.PDF.Secure.SecurityType.Standard128Bit;
+
+            permissions.AllowPrinting = permissions.AllowHighQualityPrinting = allowed.Contains(TemplateSecurity.AllowPrinting);
+            permissions.AllowModification = permissions.AllowDocumentAssembly = allowed.Contains(TemplateSecurity.AllowModifications);
+            permissions.AllowCopying = allowed.Contains(TemplateSecurity.AllowCopying);
+            permissions.AllowAnnotations = allowed.Contains(TemplateSecurity.AllowAnnotations);
+            permissions.AllowFormFilling = allowed.Contains(TemplateSecurity.AllowForms);
+            permissions.AllowAccessiblity = allowed.Contains(TemplateSecurity.AllowAccessibility);
+        }
+
+        /// <summary>
+        /// A new random owner password - 24 bytes from a cryptographic generator, which is 32 characters (the most a PDF password uses).
+        /// </summary>
+        private static string CreateOwnerPassword()
+        {
+            var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(24);
+            return Convert.ToBase64String(bytes);
         }
 
         #endregion

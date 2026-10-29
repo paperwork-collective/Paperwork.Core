@@ -94,6 +94,21 @@ namespace Paperwork
         /// </summary>
         IDocumentBuilder WithLogLevel(PaperworkRequestLogOption level);
 
+        // ── Security ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Sets the document security - what the reader may still do (anything not in
+        /// <see cref="Paperwork.Generation.v1.TemplateSecurity.Allow"/> is restricted), with 128bit
+        /// encryption and a new random owner password for each document.
+        /// </summary>
+        IDocumentBuilder WithSecurity(Paperwork.Generation.v1.TemplateSecurity security);
+
+        /// <summary>
+        /// Sets the password needed to open the document. If no security has been set,
+        /// the document is encrypted with everything else allowed.
+        /// </summary>
+        IDocumentBuilder WithUserPassword(string password);
+
         // ── Terminal operations ───────────────────────────────────────────────
 
         /// <summary>Generates the document and returns the full <see cref="PaperworkResult"/>.</summary>

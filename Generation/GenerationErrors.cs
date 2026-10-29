@@ -15,6 +15,9 @@ namespace Paperwork.Generation
 		public const int GenerationErrorCode = -406;
 		public static readonly string GenerationErrorMessage = "The generator could not process the request as {0}";
 
+		public const int UserPasswordRequiredCode = -401;
+		public static readonly string UserPasswordRequiredMessage = "300. The template needs a password to open the document, and no password was given.";
+
 
     }
 }

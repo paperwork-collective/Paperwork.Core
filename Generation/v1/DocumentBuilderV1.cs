@@ -247,6 +247,26 @@ namespace Paperwork.Generation.v1
             return this;
         }
 
+        // ── Security ──────────────────────────────────────────────────────────
+
+        public IDocumentBuilder WithSecurity(TemplateSecurity security)
+        {
+            _definition.Security = security ?? throw new ArgumentNullException(nameof(security));
+            return this;
+        }
+
+        public IDocumentBuilder WithUserPassword(string password)
+        {
+            if (string.IsNullOrEmpty(password))
+                throw new ArgumentNullException(nameof(password));
+
+            // Only a password to open - the reader can do everything else
+            _definition.Security ??= new TemplateSecurity { Allow = new List<string>(TemplateSecurity.AllowWords) };
+            _definition.Security.RequireUserPassword = true;
+            _renderOptions.UserPassword = password;
+            return this;
+        }
+
         // ── Terminal operations ───────────────────────────────────────────────
 
         public Task<PaperworkResult> BuildAsync()
