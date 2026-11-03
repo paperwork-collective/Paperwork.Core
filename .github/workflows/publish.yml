@@ -18,13 +18,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Paperwork.Core.sln
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build Paperwork.Core.sln --configuration Release --no-restore
 
       - name: Pack
-        run: dotnet pack --configuration Release --no-build --output nupkg
+        run: dotnet pack Paperwork.Core.sln --configuration Release --no-build --output nupkg
 
       - name: Push to NuGet.org
         run: dotnet nuget push nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
