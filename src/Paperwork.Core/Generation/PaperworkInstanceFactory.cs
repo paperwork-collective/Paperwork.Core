@@ -172,13 +172,13 @@ namespace Paperwork.Generation
 
             
             PaperworkResult result = CreateErrorResponse(-100, "A fatal error occurred");
-            PaperworkRequest request = null;
+            PaperworkRequest? request = null;
 
             try
             {
                 request = System.Text.Json.JsonSerializer.Deserialize<PaperworkRequest>(content, _serializerOptions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 request = null;
             }
@@ -284,7 +284,7 @@ namespace Paperwork.Generation
         /// <param name="requestVersion">The request content version</param>
         /// <param name="outputMimeType">The mime-type of the required output</param>
         /// <returns>A metching IGenerator instance or null</returns>
-		protected virtual IPaperworkGenerator GetGeneratorForRequest(Version requestVersion, string outputMimeType)
+		protected virtual IPaperworkGenerator? GetGeneratorForRequest(Version requestVersion, string outputMimeType)
 		{
             for (int i = this._knownGenerators.Count - 1; i >= 0; i--)
             {

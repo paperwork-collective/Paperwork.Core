@@ -12,26 +12,26 @@ public abstract class TemplateConfiguration
         Version = version ?? throw new ArgumentNullException(nameof(version));
     }
 
-    public abstract TemplateMetaData GetMetaData();
+    public abstract TemplateMetaData? GetMetaData();
 
-    public abstract TemplateDefinition GetDefinition();
+    public abstract TemplateDefinition? GetDefinition();
     
 }
 
 public class TemplateMetaData
 {
 
-    public virtual string Title { get; set; }
+    public virtual string? Title { get; set; }
     
-    public virtual string Description { get; set; }
+    public virtual string? Description { get; set; }
     
-    public virtual string Author { get; set; }
+    public virtual string? Author { get; set; }
     
     public virtual DateTime Published { get; set; }
     
-    public virtual string Publisher { get; set; }
+    public virtual string? Publisher { get; set; }
     
-    public virtual string PublishedVersion { get; set; }
+    public virtual string? PublishedVersion { get; set; }
     
     public TemplateMetaData()
     {}

@@ -19,17 +19,17 @@ namespace Paperwork.Generation.v1
         public List<StyleContent> Style { get; set; }
 
         [JsonPropertyName("mainLayout")]
-        public override string MainLayoutName { get; set; }
+        public override string MainLayoutName { get; set; } = DefaultMainLayoutName;
 
         [JsonPropertyName("fields")]
-        public List<DataField> Fields { get; set; }
+        public List<DataField>? Fields { get; set; }
 
         /// <summary>
         /// Gets or sets the optional security for the document - permissions, encryption and an open password.
         /// Null for no restrictions and no encryption.
         /// </summary>
         [JsonPropertyName("security")]
-        public TemplateSecurity Security { get; set; }
+        public TemplateSecurity? Security { get; set; }
 
 
         public TemplateDefinitionV1() : base(1, 1, DefaultMainLayoutName)
@@ -141,7 +141,6 @@ namespace Paperwork.Generation.v1
             try
             {
                 ConfigType type;
-                ConfigFormat format;
 
                 // A published template file names a remote item "Remote" and keeps its
                 // url in "content" - the Designer and Viewer rewrite that to "Source" /
@@ -153,7 +152,7 @@ namespace Paperwork.Generation.v1
                     if (string.IsNullOrEmpty(config.Source))
                     {
                         config.Source = config.Content;
-                        config.Content = null;
+                        config.Content = string.Empty;
                     }
                     config.Type = ConfigType.Source.ToString();
                 }
@@ -187,7 +186,7 @@ namespace Paperwork.Generation.v1
 #if OUTPUT_TO_CONSOLE
                             Console.WriteLine("Item type is source so loading the content from " +  url);
 #endif
-                            object result = (await loader(url, config.Auth, mimetype));
+                            object? result = (await loader(url, config.Auth, mimetype));
                             if (result is Stream stream)
                             {
                                 result = new StreamReader(stream).ReadToEnd();
@@ -200,7 +199,7 @@ namespace Paperwork.Generation.v1
                             }
                             else if(null != result)
                             {
-                                value = result.ToString();
+                                value = result.ToString() ?? string.Empty;
                             }
 
 #if OUTPUT_TO_CONSOLE
@@ -236,7 +235,7 @@ namespace Paperwork.Generation.v1
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Item type is source so loading the content from " +  url);
 #endif
-                    object result = (await loader(url, config.Auth, mimetype));
+                    object? result = (await loader(url, config.Auth, mimetype));
                     if (result is Stream stream)
                     {
                         result = new StreamReader(stream).ReadToEnd();
@@ -249,7 +248,7 @@ namespace Paperwork.Generation.v1
                     }
                     else if(null != result)
                     {
-                        value = result.ToString();
+                        value = result.ToString() ?? string.Empty;
                     }
 
 #if OUTPUT_TO_CONSOLE
@@ -324,7 +323,6 @@ namespace Paperwork.Generation.v1
         public virtual string Auth { get; set; }
 
         private string _innerValue;
-        private bool _loaded;
 
         public ContentRefBase()
         {
@@ -336,13 +334,11 @@ namespace Paperwork.Generation.v1
             this.Auth = "";
 
             this._innerValue = "";
-            this._loaded = false;
         }
 
         public void SetContentValue(string value)
         {
             this._innerValue = value;
-            this._loaded = true;
         }
 
 
@@ -368,15 +364,15 @@ namespace Paperwork.Generation.v1
 
     public class AuthToken
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public string Token { get; set; }
+        public string Token { get; set; } = string.Empty;
     }
 
     public class DataField
     {
         [JsonPropertyName("id")]
-        public string ID { get; set; }
+        public string? ID { get; set; }
 
         /// <summary>
         /// The field's value. Widened from string to object so non-scalar values
@@ -385,16 +381,16 @@ namespace Paperwork.Generation.v1
         /// for the same reasoning.
         /// </summary>
         [JsonPropertyName("value")]
-        public object Value { get; set; }
+        public object? Value { get; set; }
 
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [JsonPropertyName("type")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         [JsonPropertyName("desc")]
-        public string Desc { get; set; }
+        public string? Desc { get; set; }
 
         public bool Required { get; set; } = true;
 

@@ -143,7 +143,7 @@ namespace Paperwork
             this.Dispose(true);
         }
 
-        protected void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (disposing)
             {

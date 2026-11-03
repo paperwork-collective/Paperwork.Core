@@ -45,11 +45,12 @@ namespace Paperwork.Auth
 
         public async Task<object> Fetch(HttpClient client, string authName, string url, PaperworkAuthOptions options)
         {
-            var service = GetWrappedService(authName, url, true);
+            // throwNotFound is set, so a service is always returned here
+            var service = GetWrappedService(authName, url, true)!;
             return await service.Fetch(client, authName, url, options);
         }
 
-        protected IPaperworkAuthService GetWrappedService(string authName, string url, bool throwNotFound)
+        protected IPaperworkAuthService? GetWrappedService(string authName, string url, bool throwNotFound)
         {
             for (var i = 0; i < _instances.Count; i++)
             {

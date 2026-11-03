@@ -66,7 +66,7 @@ namespace Paperwork.Generation
 		public long StartMs { get; set; }
 		public long EndMs { get; set; }
 
-		public PaperworkGenerationTraceLogRequest[] InnerRequests { get; set; }
+		public PaperworkGenerationTraceLogRequest[]? InnerRequests { get; set; }
 
 		public PaperworkGenerationTraceLogEntry()
 		{
@@ -74,7 +74,7 @@ namespace Paperwork.Generation
 			this.Description = string.Empty;
 		}
 
-		public PaperworkGenerationTraceLogEntry(int index, string name, string desc, long start, long end, PaperworkGenerationTraceLogRequest[] innerRequests)
+		public PaperworkGenerationTraceLogEntry(int index, string name, string desc, long start, long end, PaperworkGenerationTraceLogRequest[]? innerRequests)
 		{
 			this.Index = index;
 			this.Name = name;

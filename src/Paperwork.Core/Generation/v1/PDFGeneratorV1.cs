@@ -43,23 +43,24 @@ namespace Paperwork.Generation.v1
 
         public IPaperworkRemoteFileRequestService RemoteFileService { get; private set; }
 
-        protected IPaperworkGenerationTracer Tracer { get; private set; }
+        // The tracer and http client are set for each request in GenerateDocument
+        protected IPaperworkGenerationTracer Tracer { get; private set; } = null!;
 
-        protected HttpClient HttpClient { get; private set; }
+        protected HttpClient HttpClient { get; private set; } = null!;
 
-        protected PaperworkRequest Request { get; private set; }
+        protected PaperworkRequest? Request { get; private set; }
 
         protected Scryber.ICacheProvider CacheProvider { get; set; }
 
-        protected PaperworkRequestRenderOptions RenderOptions { get; set; }
+        protected PaperworkRequestRenderOptions RenderOptions { get; set; } = new PaperworkRequestRenderOptions();
 
         private static Scryber.ICacheProvider _staticCacheProvider = new Scryber.Caching.PDFStaticCacheProvider();
 
 
-        public PDFGeneratorV1(IPaperworkAuthService authService, IPaperworkTracingService tracingService, IPaperworkRemoteFileRequestService fileRequestService, Scryber.ICacheProvider cacheProvider = null)
+        public PDFGeneratorV1(IPaperworkAuthService authService, IPaperworkTracingService tracingService, IPaperworkRemoteFileRequestService fileRequestService, Scryber.ICacheProvider? cacheProvider = null)
         {
             AuthService = authService ?? throw new ArgumentNullException(nameof(authService));
-            AuthTokens = null;
+            AuthTokens = new List<PaperworkRequestAuthToken>();
             RemoteFileService = fileRequestService;
             TracingService = tracingService;
             CacheProvider = cacheProvider ?? new Scryber.Caching.PDFNoCachingProvider();
@@ -76,7 +77,7 @@ namespace Paperwork.Generation.v1
             }
 
 
-            PaperworkResult result = null;
+            PaperworkResult result;
             this.RenderOptions = request.RenderOptions ?? new PaperworkRequestRenderOptions();
 
             this.Tracer = this.TracingService.Init(request);
@@ -106,7 +107,7 @@ namespace Paperwork.Generation.v1
 
         protected async virtual Task<PaperworkResult> DoGenerateDocument(PaperworkRequest request, HttpClient client)
         {
-            TemplateDefinitionV1 template = null;
+            TemplateDefinitionV1? template = null;
             
 
             using (this.Tracer.Begin(PaperworkGenerationStage.ConfigLoading))
@@ -163,7 +164,7 @@ namespace Paperwork.Generation.v1
 
             // A ready-made Document from the document builder is generated as it is,
             // rather than parsing the main layout.
-            Document directDoc = null;
+            Document? directDoc = null;
             if (null != direct && direct.Layouts.TryGetValue(mainName, out var mainComponent))
                 directDoc = mainComponent as Document;
 
@@ -351,7 +352,7 @@ namespace Paperwork.Generation.v1
             //throw new InvalidOperationException("Need the stack");
 #endif
 
-            IPaperworkRemoteFileRequestor requestor;
+            IPaperworkRemoteFileRequestor? requestor;
             if (null != this.Tracer)
                 this.Tracer.RegisterRequest(args.Request);
 
@@ -382,7 +383,7 @@ namespace Paperwork.Generation.v1
 
         
 
-        private PaperworkResult CreateErrorResult(string v, IPaperworkGenerationTracer tracer, Exception err, int code = GenerationErrors.GenerationErrorCode)
+        private PaperworkResult CreateErrorResult(string v, IPaperworkGenerationTracer tracer, Exception? err, int code = GenerationErrors.GenerationErrorCode)
         {
             string stack = "";
             if (null != err)
@@ -492,7 +493,7 @@ namespace Paperwork.Generation.v1
 #if OUTPUT_TO_CONSOLE
                     Console.WriteLine("Starting the load of config data for " + url);
 #endif
-                    Scryber.RemoteFileRequest request = null;
+                    Scryber.RemoteFileRequest? request = null;
 
                     try
                     {
@@ -521,7 +522,7 @@ namespace Paperwork.Generation.v1
                                 throw new ArgumentOutOfRangeException(auth, "The url " + url + "' cannot be retrieved via the authenticated service " + auth);
                             else
                             {
-                                object result = await AuthService.Fetch(client, auth, url, options);
+                                object? result = await AuthService.Fetch(client, auth, url, options);
                                 success = (result != null);
                                 if (success)
                                 {
@@ -613,7 +614,7 @@ namespace Paperwork.Generation.v1
         /// <exception cref="ArgumentNullException">If there is no layout with the designated name</exception>
         protected virtual TemplateDefinitionItem GetMainLayout(TemplateDefinitionV1 template)
         {
-            TemplateDefinitionItem mainLayout = null;
+            TemplateDefinitionItem? mainLayout = null;
             Dictionary<string, string> otherlayouts = new Dictionary<string, string>();
 
             string mainName = template.MainLayoutName ?? DefaultMainLayoutName;
@@ -704,7 +705,7 @@ namespace Paperwork.Generation.v1
 
             using var stream = new StringReader(content);
 
-            Document doc = null;
+            Document? doc = null;
             var type = string.IsNullOrEmpty(path) ? Scryber.ParseSourceType.DynamicContent : Scryber.ParseSourceType.RemoteFile;
             try
             {
@@ -794,16 +795,19 @@ namespace Paperwork.Generation.v1
 
         protected virtual void AddTemplateParametersToDocument(Document doc, TemplateDefinition config)
         {
-            TemplateDefinitionV1 definitionV1 = config as TemplateDefinitionV1;
+            TemplateDefinitionV1? definitionV1 = config as TemplateDefinitionV1;
             if(null == definitionV1)
                 return;
             
-            Dictionary<string, object> values = new Dictionary<string, object>();
+            Dictionary<string, object?> values = new Dictionary<string, object?>();
 
             if (definitionV1.Fields != null && definitionV1.Fields.Count > 0)
             {
                 foreach (var field in definitionV1.Fields)
                 {
+                    if (string.IsNullOrEmpty(field.ID))
+                        continue; //a field must have an id to be bound to
+
                     values.Add(field.ID, field.Value);
                     doc.TraceLog.Add(Scryber.TraceLevel.Message, "Generator","Set the template field " + FieldsValuesName + "." + field.ID + " to '" + field.Value + "'");
                 }
@@ -816,10 +820,10 @@ namespace Paperwork.Generation.v1
         {
             if (request.Fields != null && request.Fields.Count > 0)
             {
-                Dictionary<string, object> values = doc.Params[FieldsValuesName] as Dictionary<string, object>;
+                Dictionary<string, object?>? values = doc.Params[FieldsValuesName] as Dictionary<string, object?>;
 
                 if (null == values)
-                    values = new Dictionary<string, object>();
+                    values = new Dictionary<string, object?>();
 
                 foreach (var field in request.Fields)
                 {
@@ -846,10 +850,10 @@ namespace Paperwork.Generation.v1
         {
             if (request.CollectionFields != null && request.CollectionFields.Count > 0)
             {
-                Dictionary<string, object> values = doc.Params[CollectionValuesName] as Dictionary<string, object>;
+                Dictionary<string, object?>? values = doc.Params[CollectionValuesName] as Dictionary<string, object?>;
 
                 if (null == values)
-                    values = new Dictionary<string, object>();
+                    values = new Dictionary<string, object?>();
 
                 foreach (var field in request.CollectionFields)
                 {
@@ -1116,7 +1120,7 @@ namespace Paperwork.Generation.v1
                 doc.TraceLog.Add(TraceLevel.Message, "Generator", "Set the request data for " + item.Key + " to an object value");
             }
 
-            Dictionary<string, object> layouts = null;
+            Dictionary<string, object>? layouts = null;
             foreach (var item in direct.Layouts)
             {
                 if (item.Key.Equals(mainlayout))
@@ -1152,7 +1156,7 @@ namespace Paperwork.Generation.v1
 		/// <exception cref="InvalidDataException">Thrown if the data cannot be parsed.</exception>
 		protected virtual JsonDocument ParseJSONData(string name, string value)
         {
-            JsonDocument result = null;
+            JsonDocument result;
             try
             {
                 result = JsonDocument.Parse(value);
@@ -1167,13 +1171,13 @@ namespace Paperwork.Generation.v1
 
         #endregion
 
-        #region protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity security, PaperworkRequestRenderOptions options)
+        #region protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity? security, PaperworkRequestRenderOptions options)
 
         /// <summary>
         /// Returns true if the template's security needs a password to open the document, and the request has none.
         /// A preview does not need one.
         /// </summary>
-        protected static bool IsUserPasswordMissing(TemplateSecurity security, PaperworkRequestRenderOptions options)
+        protected static bool IsUserPasswordMissing(TemplateSecurity? security, PaperworkRequestRenderOptions? options)
         {
             if (null == security || !security.RequireUserPassword)
                 return false;
@@ -1190,7 +1194,7 @@ namespace Paperwork.Generation.v1
         /// The template wins over any print-restrictions meta in the layout, as the permissions are applied again once the document is bound.
         /// </summary>
         /// <remarks>The open password is never written to the log.</remarks>
-        protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity security, PaperworkRequestRenderOptions options)
+        protected virtual void ApplyTemplateSecurity(Document doc, TemplateSecurity? security, PaperworkRequestRenderOptions options)
         {
             if (null == security)
                 return;
@@ -1261,7 +1265,7 @@ namespace Paperwork.Generation.v1
 
         #endregion
 
-        private IDisposable _currentTrace;
+        private IDisposable? _currentTrace;
 
 
         protected virtual async Task<PaperworkDocumentResult> GeneratePDFAsync(Document document)
@@ -1271,8 +1275,8 @@ namespace Paperwork.Generation.v1
             document.DataBound += Document_DataBound;
             document.LayoutComplete += Document_LayoutComplete;
 
-            MemoryStream ms = null;
-            StreamReader sr = null;
+            MemoryStream? ms = null;
+            StreamReader? sr = null;
 
             byte[] data;
 
@@ -1317,8 +1321,8 @@ namespace Paperwork.Generation.v1
             document.DataBound += Document_DataBound;
             document.LayoutComplete += Document_LayoutComplete;
 
-            MemoryStream ms = null;
-            StreamReader sr = null;
+            MemoryStream? ms = null;
+            StreamReader? sr = null;
 
             this._currentTrace = this.Tracer.Begin(PaperworkGenerationStage.DocumentLoading);
 
@@ -1404,11 +1408,11 @@ namespace Paperwork.Generation.v1
             if (disposing)
             {
                 if (null != this.HttpClient)
-                    this.HttpClient = null;
+                    this.HttpClient = null!;
                 if (null != this.Request)
                     this.Request = null;
                 if (null != this.Tracer)
-                    this.Tracer = null;
+                    this.Tracer = null!;
             }
         }
 

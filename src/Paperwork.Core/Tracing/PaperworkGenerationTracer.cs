@@ -8,7 +8,7 @@ namespace Paperwork.Tracing
 	{
         private Stopwatch _stopwatch;
         private long _offset = 0;
-        private GenerationTracerEntry _current;
+        private GenerationTracerEntry? _current;
         private PaperworkGenerationLog _log;
         private Dictionary<PaperworkGenerationStage,List<GenerationRemoteRequest>> _remoteRequests;
 
@@ -69,7 +69,7 @@ namespace Paperwork.Tracing
 
         public void RegisterRequest(Scryber.RemoteFileRequest request)
         {
-            List<GenerationRemoteRequest> requests;
+            List<GenerationRemoteRequest>? requests;
 
             if (!this._remoteRequests.TryGetValue(this.Current, out requests) || null == requests )
             {
@@ -96,9 +96,9 @@ namespace Paperwork.Tracing
         }
 
 
-        private PaperworkGenerationTraceLogRequest[] GetInnerRequestsAndClear(PaperworkGenerationStage forStage)
+        private PaperworkGenerationTraceLogRequest[]? GetInnerRequestsAndClear(PaperworkGenerationStage forStage)
         {
-            List<GenerationRemoteRequest> requests;
+            List<GenerationRemoteRequest>? requests;
 
             if (!this._remoteRequests.TryGetValue(forStage, out requests) || requests.Count == 0)
                 return null;
@@ -152,7 +152,7 @@ namespace Paperwork.Tracing
         /// </summary>
         private class GenerationTracerEntry : IDisposable
         {
-            private PaperworkGenerationTracer Tracer { get; set; }
+            private PaperworkGenerationTracer? Tracer { get; set; }
             
             public long StartMilliSecond { get; private set; }
 
@@ -202,13 +202,15 @@ namespace Paperwork.Tracing
             /// <param name="stage">The stage the tracer is at.</param>
             public GenerationTracerEntry(PaperworkGenerationTracer tracer, PaperworkGenerationStage stage)
             {
-                this.Tracer = tracer ?? throw new ArgumentNullException("A valid tracer is needed");
+                if (null == tracer)
+                    throw new ArgumentNullException("A valid tracer is needed");
 
-                if (this.Tracer.Current != PaperworkGenerationStage.None)
-                    throw new ArgumentOutOfRangeException("The tracer is currently executing stage " + this.Tracer.Current);
+                if (tracer.Current != PaperworkGenerationStage.None)
+                    throw new ArgumentOutOfRangeException("The tracer is currently executing stage " + tracer.Current);
 
+                this.Tracer = tracer;
                 this.Stage = stage;
-                this.StartMilliSecond = this.Tracer._stopwatch.ElapsedMilliseconds;
+                this.StartMilliSecond = tracer._stopwatch.ElapsedMilliseconds;
                 this.EndMilliSecond = -1L;
             }
 
@@ -217,8 +219,12 @@ namespace Paperwork.Tracing
             /// </summary>
             public void Dispose()
             {
-                this.EndMilliSecond = this.Tracer._stopwatch.ElapsedMilliseconds;
-                this.Tracer.EndEntry(this);
+                var tracer = this.Tracer;
+                if (null == tracer)
+                    return; //already disposed
+
+                this.EndMilliSecond = tracer._stopwatch.ElapsedMilliseconds;
+                tracer.EndEntry(this);
                 this.Tracer = null;
             }
         }
@@ -240,13 +246,18 @@ namespace Paperwork.Tracing
 
             private Stopwatch _stopwatch;
 
+            private GenerationRemoteRequest(string path, Stopwatch stopwatch)
+            {
+                this.Path = path;
+                this.Error = string.Empty;
+                this._stopwatch = stopwatch;
+            }
+
             public static GenerationRemoteRequest Start(Scryber.RemoteFileRequest forRequest, Stopwatch stopwatch)
             {
-                var started = new GenerationRemoteRequest();
+                var started = new GenerationRemoteRequest(forRequest.FilePath, stopwatch);
                 started.StartMs = stopwatch.ElapsedMilliseconds;
                 started.EndMs = -1;
-                started.Path = forRequest.FilePath;
-                started._stopwatch = stopwatch;
 
                 if (forRequest.IsCompleted)
                 {

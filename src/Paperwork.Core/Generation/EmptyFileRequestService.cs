@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using Scryber;
 
 namespace Paperwork.Generation
@@ -9,7 +10,7 @@ namespace Paperwork.Generation
 		{
 		}
 
-        public bool ShouldHandle(RemoteFileRequest request, out IPaperworkRemoteFileRequestor requestor)
+        public bool ShouldHandle(RemoteFileRequest request, [NotNullWhen(true)] out IPaperworkRemoteFileRequestor? requestor)
         {
             requestor = null;
             return false;

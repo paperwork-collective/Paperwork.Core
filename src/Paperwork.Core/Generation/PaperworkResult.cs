@@ -10,13 +10,13 @@ namespace Paperwork.Generation
 
 		public int ResultCode { get; set; }
 
-		public PaperworkDocumentResult Document {get;set;}
+		public PaperworkDocumentResult? Document {get;set;}
 
 		public double GenerationDuration { get; set; }
 
 		public double Progress { get; set; }
 
-		public PaperworkGenerationLog Log { get; set; }
+		public PaperworkGenerationLog? Log { get; set; }
 
 		public string Error { get; set; }
 
@@ -39,13 +39,13 @@ namespace Paperwork.Generation
     {
         
 
-        public byte[] Binary { get; set; }
+        public byte[] Binary { get; set; } = Array.Empty<byte>();
 
-        public string MimeType { get; set; }
+        public string MimeType { get; set; } = string.Empty;
 
         public int DecodedSize { get; set; }
 
-        public string DataFormat { get; set; }
+        public string DataFormat { get; set; } = string.Empty;
 
         public PaperworkDocumentResult(byte[] binary, string mimetype, string dataformat, int decodedSize)
         {

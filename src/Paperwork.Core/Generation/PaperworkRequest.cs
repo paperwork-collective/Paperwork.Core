@@ -123,9 +123,9 @@ namespace Paperwork.Generation
     /// </summary>
     public class PaperworkRequestField
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// The field's value. Widened from string to object so non-scalar values
@@ -135,7 +135,7 @@ namespace Paperwork.Generation
         /// binding engine already consumes directly elsewhere (see the JSON data
         /// params handling in PDFGeneratorV1).
         /// </summary>
-        public object Value { get; set; }
+        public object? Value { get; set; }
 
         /// <summary>
         /// True if this field has a genuinely empty value - a null reference, an
@@ -175,13 +175,13 @@ namespace Paperwork.Generation
 
         //public PaperworkRequestCacheOption Cache { get; set; }
         
-        public PaperworkOverlayGrid Overlay { get; set; }
+        public PaperworkOverlayGrid? Overlay { get; set; }
 
         /// <summary>
         /// Gets or sets the password needed to open the document, when the template's security requires one.
         /// It is never written to a log, the result or an error message.
         /// </summary>
-        public string UserPassword { get; set; }
+        public string? UserPassword { get; set; }
 
         /// <summary>
         /// Gets or sets whether this request is a preview (e.g. in the designer). A preview applies the template's
