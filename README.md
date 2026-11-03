@@ -34,7 +34,9 @@ Paperwork.Core is for embedding document generation in your .NET applications. G
 | **Paperwork.Core** (this repository) | Embedding generation in your .NET applications, from your own template or a document built in code. |
 | [Paperwork.CLI](https://github.com/paperwork-collective/Paperwork.CLI) | Creating dynamic documents from your templates automatically, whether referenced or downloaded. |
 | [Paperwork.Skill](https://github.com/paperwork-collective/Paperwork.Skill) | Making the CLI available to your AI, to design, build and run document creation. |
-| [Paperwork.Samples](https://github.com/paperwork-collective/Paperwork.Samples) | The help-file templates and examples, to be published on [paperwork.design](https://paperwork.design). |
+| [Paperwork.Design](https://paperwork.design) | The online template designer: build, preview and publish your templates. |
+| [Paperwork.View](https://paperwork.vu) | The free online PDF viewer for your custom templates and Paperwork designs. |
+| [Paperwork.Samples](https://github.com/paperwork-collective/Paperwork.Samples) | The designs and templates from the help files at [paperwork.help](https://paperwork.help), ready to use. |
 
 Documentation for all of them is at [paperwork.help](https://paperwork.help).
 
