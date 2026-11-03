@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://github.com/richard-scryber/scryber.core">Scryber</a> |
   Core |
-  <a href="https://github.com/paperwork-collective/Paperwork.CLI">CLI</a> |
+  <a href="https://www.nuget.org/packages/Paperwork.CLI">CLI</a> |
   <a href="https://github.com/paperwork-collective/Paperwork.Skill">Skill</a> |
   <a href="https://paperwork.design" target="_blank" rel="noopener">Design</a> |
   <a href="https://paperwork.vu" target="_blank" rel="noopener">View</a> |
@@ -32,7 +32,7 @@ Paperwork.Core is for embedding document generation in your .NET applications. G
 |---|---|
 | [Scryber.Core](https://github.com/richard-scryber/scryber.core) | The open-source generation engine: templates, and code to create a document. |
 | **Paperwork.Core** (this repository) | Embedding generation in your .NET applications, from your own template or a document built in code. |
-| [Paperwork.CLI](https://github.com/paperwork-collective/Paperwork.CLI) | Creating dynamic documents from your templates automatically, whether referenced or downloaded. |
+| [Paperwork.CLI](https://www.nuget.org/packages/Paperwork.CLI) | Creating dynamic documents from your templates automatically, whether referenced or downloaded. |
 | [Paperwork.Skill](https://github.com/paperwork-collective/Paperwork.Skill) | Making the CLI available to your AI, to design, build and run document creation. |
 | [Paperwork.Design](https://paperwork.design) | The online template designer: build, preview and publish your templates. |
 | [Paperwork.View](https://paperwork.vu) | The free online PDF viewer for your custom templates and Paperwork designs. |
@@ -156,7 +156,7 @@ var builder = factory.FromConfig(stream);
 var bytes = await builder.BuildBytesAsync();
 ```
 
-The JSON is the same `{"schemaVers": "1.1", "template": {...}}` shape a published Paperwork template is stored as — see [Paperwork.CLI's config-format docs](https://github.com/paperwork-collective/Paperwork.CLI/blob/main/docs/config-format.md) for the full schema, including nested field values.
+The JSON is the same `{"schemaVers": "1.1", "template": {...}}` shape a published Paperwork template is stored as — see [Paperwork.CLI's config-format docs](https://paperwork.help/paperwork.cli/config-format.html) for the full schema, including nested field values.
 
 ### Generate
 
@@ -220,7 +220,7 @@ Inside HTML templates, use handlebars-style expressions:
 ## Related packages
 
 - [`Paperwork.Core.Extensions`](https://github.com/paperwork-collective/Paperwork.Core.Extensions) — shared portal config, `$assets`/`$maps` remote-file resolution, and cross-platform auth handlers (Atlassian, Firebase Asset) for consumers that need them. Not a dependency of this package — install it separately if you need that functionality.
-- [`Paperwork.CLI`](https://github.com/paperwork-collective/Paperwork.CLI) — command-line PDF generation built on this package.
+- [`Paperwork.CLI`](https://www.nuget.org/packages/Paperwork.CLI) — command-line PDF generation built on this package.
 
 ## License
 
