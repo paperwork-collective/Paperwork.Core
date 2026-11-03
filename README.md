@@ -219,7 +219,7 @@ Inside HTML templates, use handlebars-style expressions:
 
 ## Related packages
 
-- [`Paperwork.Core.Extensions`](https://github.com/paperwork-collective/Paperwork.Core.Extensions) — shared portal config, `$assets`/`$maps` remote-file resolution, and cross-platform auth handlers (Atlassian, Firebase Asset) for consumers that need them. Not a dependency of this package — install it separately if you need that functionality.
+- [`Paperwork.Core.Extensions`](https://www.nuget.org/packages/Paperwork.Core.Extensions) — shared portal config, `$assets`/`$maps` remote-file resolution, and cross-platform auth handlers (Atlassian, Firebase Asset) for consumers that need them. Not a dependency of this package — install it separately if you need that functionality.
 - [`Paperwork.CLI`](https://www.nuget.org/packages/Paperwork.CLI) — command-line PDF generation built on this package.
 
 ## License
