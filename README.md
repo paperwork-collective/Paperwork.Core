@@ -1,7 +1,42 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paperwork-collective/Paperwork.Core/main/.github/images/banner-dark.png">
+  <img alt="Paperwork.Core: templates in, beautiful, secure documents out" src="https://raw.githubusercontent.com/paperwork-collective/Paperwork.Core/main/.github/images/banner-light.png">
+</picture>
+
+<p align="center">
+  <a href="https://github.com/richard-scryber/scryber.core">Scryber</a> |
+  Core |
+  <a href="https://github.com/paperwork-collective/Paperwork.CLI">CLI</a> |
+  <a href="https://github.com/paperwork-collective/Paperwork.Skill">Skill</a> |
+  <a href="https://paperwork.design" target="_blank" rel="noopener">Design</a> |
+  <a href="https://paperwork.vu" target="_blank" rel="noopener">View</a> |
+  <a href="https://paperwork.help" target="_blank" rel="noopener">Help</a> |
+  <a href="https://www.paperwork-collective.com" target="_blank" rel="noopener">Corp</a>
+</p>
+
 # Paperwork.Core
 
-Core PDF generation library for Paperwork. Provides a fluent builder API over the [Scryber](https://github.com/richard-scryber/scryber.core) rendering engine, to generate PDFs from HTML templates, CSS, and JSON data.
-For documentation see [Paperwork.help](https://paperwork.help)
+**Templates in. Beautiful, secure documents out.**
+
+Paperwork.Core is for embedding document generation in your .NET applications. Give it a template exported from the Paperwork Designer, your own HTML, or a document or component built in code, add your data and fields, and generate the PDF, through a simple fluent builder. It runs on the open-source [Scryber](https://github.com/richard-scryber/scryber.core) engine, and is the library behind the Paperwork Designer ([paperwork.design](https://paperwork.design)) and Viewer ([paperwork.vu](https://paperwork.vu)).
+
+- **Templated**: HTML and CSS templates, with handlebars binding to your fields and data.
+- **Designed**: build and preview templates in the Paperwork Designer, export them, then generate the same document from your code.
+- **Secured**: you choose how remote sources are fetched and authorised, and documents can carry passwords and restrictions.
+
+> **Coming from Scryber.Core?** Paperwork.Core uses the same engine, so your templates work unchanged, and Scryber.Core users are encouraged to switch. A `Document` you already build can be passed straight in with `WithLayout(document)`. See [Switching to Paperwork.Core](https://github.com/richard-scryber/scryber.core#switching-to-paperworkcore).
+
+## The Paperwork family
+
+| | What it's for |
+|---|---|
+| [Scryber.Core](https://github.com/richard-scryber/scryber.core) | The open-source generation engine: templates, and code to create a document. |
+| **Paperwork.Core** (this repository) | Embedding generation in your .NET applications, from your own template or a document built in code. |
+| [Paperwork.CLI](https://github.com/paperwork-collective/Paperwork.CLI) | Creating dynamic documents from your templates automatically, whether referenced or downloaded. |
+| [Paperwork.Skill](https://github.com/paperwork-collective/Paperwork.Skill) | Making the CLI available to your AI, to design, build and run document creation. |
+| [Paperwork.Samples](https://github.com/paperwork-collective/Paperwork.Samples) | The help-file templates and examples, to be published on [paperwork.design](https://paperwork.design). |
+
+Documentation for all of them is at [paperwork.help](https://paperwork.help).
 
 ## Installation
 
@@ -15,7 +50,7 @@ dotnet add package Paperwork.Core
 using Paperwork;
 
 using var factory = PaperworkFactory.Create(httpClient).Build();
-//using var factory = PaperworkFactory.Create(); - own internal httpClient
+//using var factory = PaperworkFactory.Create().Build(); - own internal httpClient
 
 var bytes = await factory.NewDocument()
     .WithLayout("<html><body><p data-content='{{$fields[\"title\"]}}'></p></body></html>")
@@ -145,6 +180,23 @@ builder.WithLogLevel(PaperworkRequestLogOption.Messages);
 ```
 
 The default, `PaperworkRequestLogOption.Template`, uses the template's own `<?paperwork append-log='true' ?>` setting. `Off` turns the log off, whatever the template says.
+
+### Security
+
+A template can carry a `security` section, saved by the Paperwork Designer, or you can set it in code:
+
+```csharp
+using Paperwork.Generation.v1;
+
+// What the reader may still do - anything left out is restricted:
+// printing, copying, annotations, forms, modifications, accessibility
+builder.WithSecurity(new TemplateSecurity { Allow = { "printing", "accessibility" } });
+
+// A password needed to open the document
+builder.WithUserPassword("open-sesame");
+```
+
+The owner password is a new random value for each document, never stored or shown, so the restrictions cannot be lifted. The open password is never logged. A template that requires an open password fails with code -401 when none is given. Security set this way replaces any `print-restrictions` meta tag in the template.
 
 ## Template Binding
 
