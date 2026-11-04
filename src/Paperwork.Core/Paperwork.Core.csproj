@@ -7,7 +7,7 @@
 
     <!-- Package identity -->
     <PackageId>Paperwork.Core</PackageId>
-    <Version>9.8.1</Version>
+    <Version>9.8.2</Version>
     <Authors>paperwork-collective</Authors>
     <Description>Paperwork.Core generates PDF documents from templates. It turns HTML templates with CSS styles and SVG drawing, bound to your data, into PDF documents - with flowing pages, data binding, and referenced images, stylesheets and fonts - on .NET and in Blazor WASM.
 

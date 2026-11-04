@@ -1,6 +1,6 @@
 ![Paperwork.Core: templates in, beautiful, secure documents out](https://raw.githubusercontent.com/paperwork-collective/Paperwork.Core/main/.github/images/banner-dark.png)
 
-[Scryber](https://github.com/richard-scryber/scryber.core) | **Core** | [CLI](https://www.nuget.org/packages/Paperwork.CLI) | [Skill](https://github.com/paperwork-collective/Paperwork.Skill) | [Design](https://paperwork.design) | [View](https://paperwork.vu) | [Help](https://paperwork.help) | [Corp](https://www.paperwork-collective.com)
+[Scryber](https://www.nuget.org/packages/Scryber.Core) | **Core** | [Git](https://github.com/paperwork-collective/Paperwork.Core) | [CLI](https://www.nuget.org/packages/Paperwork.CLI) | [Skill](https://github.com/paperwork-collective/Paperwork.Skill) | [Design](https://paperwork.design) | [View](https://paperwork.vu) | [Help](https://paperwork.help) | [Corp](https://www.paperwork-collective.com)
 
 # Paperwork.Core
 
@@ -18,8 +18,8 @@ Paperwork.Core is for embedding document generation in your .NET applications. G
 
 | | What it's for |
 |---|---|
-| [Scryber.Core](https://github.com/richard-scryber/scryber.core) | The open-source generation engine: templates, and code to create a document. |
-| **Paperwork.Core** (this repository) | Embedding generation in your .NET applications, from your own template or a document built in code. |
+| [Scryber.Core](https://www.nuget.org/packages/Scryber.Core) ([git](https://github.com/richard-scryber/scryber.core)) | The open-source generation engine: templates, and code to create a document. |
+| **Paperwork.Core** (this package, [git](https://github.com/paperwork-collective/Paperwork.Core)) | Embedding generation in your .NET applications, from your own template or a document built in code. |
 | [Paperwork.CLI](https://www.nuget.org/packages/Paperwork.CLI) | Creating dynamic documents from your templates automatically, whether referenced or downloaded. |
 | [Paperwork.Skill](https://github.com/paperwork-collective/Paperwork.Skill) | Making the CLI available to your AI, to design, build and run document creation. |
 | [Paperwork.Design](https://paperwork.design) | The online template designer: build, preview and publish your templates. |
