@@ -43,7 +43,7 @@ using var factory = PaperworkFactory.Create(httpClient).Build();
 //using var factory = PaperworkFactory.Create().Build(); - own internal httpClient
 
 var bytes = await factory.NewDocument()
-    .WithLayout("<html><body><p data-content='{{$fields[\"title\"]}}'></p></body></html>")
+    .WithLayout("<html><body><p data-content='{{$fields.title}}'></p></body></html>")
     .WithField("title", "Hello World")
     .BuildBytesAsync();
 
@@ -73,7 +73,7 @@ services.AddPaperwork(builder.Configuration);
 PaperworkConfiguration.Init(configuration);
 ```
 
-The engine options (Fonts, Imaging, Parsing, Output, Tracing...) can be set in a `"Paperwork"` or `"Scryber"` section of the configuration. Both are read, and a value in `"Paperwork"` replaces the same value in `"Scryber"`.
+The engine options (Fonts, Imaging, Parsing, Output, Tracing...) can be set in a `"Paperwork"` section of the configuration and will be applied (any `"Scryber"` options will also be read, with `"Paperwork"` settings applied on top).
 
 ### Layout
 
@@ -105,6 +105,8 @@ builder.WithStyle(styleGroup);  // Custom StyleGroup
 
 ### Data
 
+Data entries are designed for large feeds, loaded files and complex object graphs, that can be enumerated over and calculated on.
+
 ```csharp
 // JSON string — bound as {{name.field}} in templates
 builder.WithData("order", "{\"total\": 1200}");
@@ -115,20 +117,53 @@ builder.WithDataFile("order", "order.json");
 // Any object — set directly on doc.Params
 builder.WithData("order", new { total = 1200 });
 ```
+And then used directly in the templates, or stylesheets - with over 100 functions and expressions (including custom functions).
 
-A pre-built `Document`, `StyleGroup` or data object is passed to the factory alongside the request, so every document is generated the same way - with the factory's auth, remote file handling and logging - whatever the inputs.
+Loops and inner properties:
+
+```html
+{{#each order.items}}
+    <div class="item" >{{format(this.price, "£#0.00")}}</div>
+{{/each}}
+```
+
+Variables and calculations:
+
+```html
+<var data-id="subtotal" data-value="{{sumOf(order.items,this.price)}}" />
+```
+
+Output and formatting:
+
+```html
+<div class="sub" >Subtotal: {{format(subtotal, "£#0.00")}}</div>
+<div class="total" >Total: {{format(order.total, "£#0.00")}}</div>
+```
 
 ### Fields
 
-Values accessible in templates as `$fields["key"]`:
+Fields are simple values accessible in templates as `$fields["key"]` or `$fields.key` and can be used anywhere in the template(s) or stylesheet(s):
 
 ```csharp
 builder.WithField("date", "2026-03-25");
-builder.WithField("title", "Invoice #1001");
+builder.WithField("theme", "blue");
 ```
 
+Used directly in the style or content:
+
 ```html
-<p data-content='{{$fields["title"]}}'></p>
+<p style="color: {{$fields.theme}}" >{{$fields.date}}</p>
+```
+
+```css
+/* declared in stylesheets or style blocks */
+body{
+    --theme: var($fields.theme, '#000');
+}
+
+p {
+    color: var(--theme);
+}
 ```
 
 `WithField(id, value, type)` only accepts a **scalar** `string` value. A field whose value is a nested object or array (e.g. a Designer-authored `single`/`list`-type field) can't be built up this way — load it via `FromConfig`/`FromDefinition` instead (below), which preserves nested values as `JsonElement`.
@@ -188,27 +223,12 @@ builder.WithUserPassword("open-sesame");
 
 The owner password is a new random value for each document, never stored or shown, so the restrictions cannot be lifted. The open password is never logged. A template that requires an open password fails with code -401 when none is given. Security set this way replaces any `print-restrictions` meta tag in the template.
 
-## Template Binding
-
-Inside HTML templates, use handlebars-style expressions:
-
-```html
-<!-- Parameter -->
-<p data-content='{{$fields["date"]}}'></p>
-
-<!-- Data object field -->
-<p data-content='{{order.customerName}}'></p>
-
-<!-- Loop over array -->
-{{#each items}}
-<p data-content='{{.label}}'></p>
-{{/each}}
-```
-
 ## Related packages
 
 - [`Paperwork.Core.Extensions`](https://www.nuget.org/packages/Paperwork.Core.Extensions) — shared portal config, `$assets`/`$maps` remote-file resolution, and cross-platform auth handlers (Atlassian, Firebase Asset) for consumers that need them. Not a dependency of this package — install it separately if you need that functionality.
 - [`Paperwork.CLI`](https://www.nuget.org/packages/Paperwork.CLI) — command-line PDF generation built on this package.
+
+See [paperwork.help](https://paperwork.help) for more information on the full family of paperwork solutions.
 
 ## License
 
