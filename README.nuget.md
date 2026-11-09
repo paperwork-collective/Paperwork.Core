@@ -180,7 +180,6 @@ var bytes = await builder.BuildBytesAsync();
 ```
 
 The JSON is the same `{"schemaVers": "1.1", "template": {...}}` shape a published Paperwork template is stored as — see [Paperwork.CLI's config-format docs](https://paperwork.help/paperwork.cli/config-format.html) for the full schema, including nested field values.
-
 ### Generate
 
 ```csharp
