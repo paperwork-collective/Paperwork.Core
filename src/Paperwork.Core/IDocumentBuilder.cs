@@ -109,6 +109,31 @@ namespace Paperwork
         /// </summary>
         IDocumentBuilder WithUserPassword(string password);
 
+        // ── Form data ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Carries the field values the document was made from inside the PDF itself, as an
+        /// embedded file. Nothing is drawn on any page, but the file is listed in a reader's
+        /// attachments panel and travels with the document wherever it goes - there is no way
+        /// to hide it, and that is on purpose.
+        /// </summary>
+        /// <param name="source">What identifies the template, recorded so the answers can be matched back to it.</param>
+        /// <param name="version">The template's version, recorded alongside the source.</param>
+        /// <param name="fileName">The name the attached file is given. Defaults to paperwork-answers.json.</param>
+        /// <param name="description">The description shown beside the file. Defaults to a plain sentence saying what it is.</param>
+        /// <remarks>
+        /// Built in code there is no form to fill in, so every field is the caller's own and all of
+        /// them are attached. A published template is the other way round - most of its fields were
+        /// set by its designer - so it attaches only what someone filling it in can change. Pass a
+        /// <see cref="Paperwork.Generation.v1.TemplateFormData"/> with its Fields set to choose.
+        /// </remarks>
+        IDocumentBuilder WithFormData(string? source = null, string? version = null, string? fileName = null, string? description = null);
+
+        /// <summary>
+        /// Sets the form data for the document in full - see <see cref="WithFormData(string?, string?, string?, string?)"/>.
+        /// </summary>
+        IDocumentBuilder WithFormData(Paperwork.Generation.v1.TemplateFormData formData);
+
         // ── Terminal operations ───────────────────────────────────────────────
 
         /// <summary>Generates the document and returns the full <see cref="PaperworkResult"/>.</summary>

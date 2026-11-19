@@ -31,6 +31,13 @@ namespace Paperwork.Generation.v1
         [JsonPropertyName("security")]
         public TemplateSecurity? Security { get; set; }
 
+        /// <summary>
+        /// Gets or sets the optional form data for the document - whether the answers it was
+        /// made from are carried inside the PDF as an embedded file. Null for nothing attached.
+        /// </summary>
+        [JsonPropertyName("formData")]
+        public TemplateFormData? FormData { get; set; }
+
 
         public TemplateDefinitionV1() : base(1, 1, DefaultMainLayoutName)
         {
@@ -391,6 +398,35 @@ namespace Paperwork.Generation.v1
 
         [JsonPropertyName("desc")]
         public string? Desc { get; set; }
+
+        /// <summary>
+        /// Where this field's value may be changed - any of "Template" (the designer, when the
+        /// template is built), "Viewer" (the person making the document) and "Query" (the address
+        /// the document is opened at). A published template carries this on every field.
+        /// Null or empty means the designer alone, so nobody making a document can change it.
+        /// </summary>
+        [JsonPropertyName("modify")]
+        [JsonConverter(typeof(ModifyValueConverter))]
+        public List<string>? Modify { get; set; }
+
+        /// <summary>
+        /// True when someone making a document from this template can change this field's value -
+        /// by filling it in, or through the address. Used to keep the values only the designer
+        /// set out of the attached form data (see <see cref="TemplateFormData"/>).
+        /// </summary>
+        public bool IsFilledIn()
+        {
+            if (null == this.Modify || this.Modify.Count == 0)
+                return false;
+
+            foreach (var one in this.Modify)
+            {
+                if (string.Equals(one, "Viewer", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(one, "Query", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
 
         public bool Required { get; set; } = true;
 

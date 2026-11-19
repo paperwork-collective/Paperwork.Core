@@ -243,6 +243,15 @@ namespace Paperwork.Generation.v1
                     return CreateErrorResult("306. The template security could not be applied to the document.", this.Tracer, ex);
                 }
 
+                try
+                {
+                    ApplyFormDataAttachment(doc, template);
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResult("307. The form data could not be attached to the document.", this.Tracer, ex);
+                }
+
             }
 
             //5. Process the actual document
@@ -1252,6 +1261,162 @@ namespace Paperwork.Generation.v1
             permissions.AllowAnnotations = allowed.Contains(TemplateSecurity.AllowAnnotations);
             permissions.AllowFormFilling = allowed.Contains(TemplateSecurity.AllowForms);
             permissions.AllowAccessiblity = allowed.Contains(TemplateSecurity.AllowAccessibility);
+        }
+
+        /// <summary>
+        /// 6. Attaches the answers the document was made from to the PDF itself, as an embedded
+        /// file in the document catalog, when the template asks for it. Nothing is drawn on any
+        /// page, but the file is listed in a reader's attachments panel - see <see cref="TemplateFormData"/>.
+        /// </summary>
+        /// <remarks>
+        /// The values are read back off the document's own $fields parameter, after the template's
+        /// defaults and the request's own fields have been merged into it, so what is attached is
+        /// what the document was actually made from - not what was asked for.
+        /// The attachment is encrypted along with the rest of the document when there is security,
+        /// so a document with a password to open it needs that password to read the answers too.
+        /// </remarks>
+        protected virtual void ApplyFormDataAttachment(Document doc, TemplateDefinition template)
+        {
+            var definition = template as TemplateDefinitionV1;
+            var formData = definition?.FormData;
+
+            if (null == formData || !formData.Include)
+                return;
+
+            var log = doc.TraceLog;
+            var payload = BuildFormDataPayload(doc, formData, definition!);
+
+            if (null == payload || payload.Length == 0)
+            {
+                if (log.ShouldLog(TraceLevel.Warning))
+                    log.Add(TraceLevel.Warning, "Generator", "The template asked for the form data to be attached, but there was nothing to attach.");
+                return;
+            }
+
+            var name = formData.ResolvedFileName();
+
+            // An Addition is laid out by the document itself (LayoutEngineDocument.LayoutAdditions)
+            // rather than within a page, so it registers the embedded file in the catalog and
+            // renders nothing. The file data is set directly - no source is fetched.
+            doc.Additions.Add(new AttachmentAddition()
+            {
+                Data = new Scryber.PDF.PDFEmbeddedFileData(name, payload),
+                Description = formData.ResolvedDescription()
+            });
+
+            if (log.ShouldLog(TraceLevel.Message))
+                log.Add(TraceLevel.Message, "Generator", "Attached the form data to the document as '" + name + "', " + payload.Length + " bytes.");
+        }
+
+        /// <summary>
+        /// The JSON written into the attached file: what made the document, and what it was made from.
+        /// </summary>
+        protected virtual byte[] BuildFormDataPayload(Document doc, TemplateFormData formData, TemplateDefinitionV1 definition)
+        {
+            JsonElement fields = default;
+            var hasFields = false;
+
+            if (doc.Params.TryGetValue(FieldsValuesName, out var raw) && null != raw)
+            {
+                if (raw is JsonElement element)
+                {
+                    fields = element;
+                    hasFields = true;
+                }
+                else
+                {
+                    // FinalizeFieldsParameter normally folds these into one JsonElement, but a
+                    // subclass may have left the working dictionary in place.
+                    fields = JsonSerializer.SerializeToElement(raw);
+                    hasFields = true;
+                }
+            }
+
+            if (!hasFields)
+                return Array.Empty<byte>();
+
+            // $fields carries every field on the document, not only the ones someone filling the
+            // form could change - see TemplateFormData.Fields for why that matters here.
+            var everyField = formData.IncludesEveryField();
+            var attach = everyField ? null : FilledInFieldIds(definition);
+
+            if (null != attach && attach.Count == 0)
+            {
+                // Nothing on this template is the person's to fill in, so there are no answers
+                // to carry - and attaching the designer's own values instead is exactly what
+                // must not happen.
+                return Array.Empty<byte>();
+            }
+
+            using var buffer = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions() { Indented = true }))
+            {
+                writer.WriteStartObject();
+                writer.WriteString("paperwork", TemplateFormData.PayloadVersion);
+                writer.WriteString("created", DateTime.UtcNow.ToString("o"));
+
+                if (!string.IsNullOrEmpty(formData.Source) || !string.IsNullOrEmpty(formData.Version)
+                    || !string.IsNullOrEmpty(formData.Path))
+                {
+                    writer.WriteStartObject("template");
+                    if (!string.IsNullOrEmpty(formData.Source))
+                        writer.WriteString("source", formData.Source);
+                    if (!string.IsNullOrEmpty(formData.Version))
+                        writer.WriteString("version", formData.Version);
+                    if (!string.IsNullOrEmpty(formData.Path))
+                        writer.WriteString("path", formData.Path);
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteString("fields_scope", everyField ? TemplateFormData.FieldsAll : TemplateFormData.FieldsFilledIn);
+
+                writer.WritePropertyName("fields");
+                if (null == attach)
+                {
+                    fields.WriteTo(writer);
+                }
+                else if (fields.ValueKind == JsonValueKind.Object)
+                {
+                    writer.WriteStartObject();
+                    foreach (var property in fields.EnumerateObject())
+                    {
+                        if (attach.Contains(property.Name))
+                            property.WriteTo(writer);
+                    }
+                    writer.WriteEndObject();
+                }
+                else
+                {
+                    // Not the object FinalizeFieldsParameter builds, so there is nothing to match
+                    // ids against - and writing it whole would be writing the lot.
+                    writer.WriteStartObject();
+                    writer.WriteEndObject();
+                }
+
+                writer.WriteEndObject();
+            }
+
+            return buffer.ToArray();
+        }
+
+        /// <summary>
+        /// The ids of the fields someone making the document can change - by filling them in, or
+        /// through the address. Everything else on the template was set by its designer and is
+        /// not an answer anyone gave.
+        /// </summary>
+        protected static HashSet<string> FilledInFieldIds(TemplateDefinitionV1 definition)
+        {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+
+            if (null == definition.Fields)
+                return ids;
+
+            foreach (var field in definition.Fields)
+            {
+                if (!string.IsNullOrEmpty(field.ID) && field.IsFilledIn())
+                    ids.Add(field.ID!);
+            }
+            return ids;
         }
 
         /// <summary>

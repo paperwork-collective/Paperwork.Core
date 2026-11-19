@@ -267,6 +267,29 @@ namespace Paperwork.Generation.v1
             return this;
         }
 
+        // ── Form data ─────────────────────────────────────────────────────────
+
+        public IDocumentBuilder WithFormData(string? source = null, string? version = null, string? fileName = null, string? description = null)
+        {
+            return WithFormData(new TemplateFormData()
+            {
+                Include = true,
+                // Built in code: there is no form, so every field was put there by the caller and
+                // there is no designer's value to keep out of it.
+                Fields = TemplateFormData.FieldsAll,
+                Source = source,
+                Version = version,
+                FileName = fileName,
+                Description = description
+            });
+        }
+
+        public IDocumentBuilder WithFormData(TemplateFormData formData)
+        {
+            _definition.FormData = formData ?? throw new ArgumentNullException(nameof(formData));
+            return this;
+        }
+
         // ── Terminal operations ───────────────────────────────────────────────
 
         public Task<PaperworkResult> BuildAsync()
