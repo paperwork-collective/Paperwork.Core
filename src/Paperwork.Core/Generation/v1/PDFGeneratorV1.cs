@@ -1283,6 +1283,22 @@ namespace Paperwork.Generation.v1
             if (null == formData || !formData.Include)
                 return;
 
+            // Deferred to DataBound, so the document's own title is the BOUND one.
+            // doc.Info.Title comes from the template's <title>, which is routinely an
+            // expression - attaching it from here would record "{{model.customer}}"
+            // rather than the customer's name. An Addition is laid out by the document
+            // (LayoutEngineDocument.LayoutAdditions), which happens after binding, so
+            // adding it here is still in time. Same pattern as the permissions hook
+            // in ApplyTemplateSecurity above.
+            doc.DataBound += (sender, args) => AttachFormData(doc, formData, definition!);
+        }
+
+        /// <summary>
+        /// Builds the payload and attaches it. Runs after data binding - see the
+        /// comment in ApplyFormDataAttachment for why that matters.
+        /// </summary>
+        protected virtual void AttachFormData(Document doc, TemplateFormData formData, TemplateDefinitionV1 definition)
+        {
             var log = doc.TraceLog;
             var payload = BuildFormDataPayload(doc, formData, definition!);
 
@@ -1354,6 +1370,17 @@ namespace Paperwork.Generation.v1
                 writer.WriteStartObject();
                 writer.WriteString("paperwork", TemplateFormData.PayloadVersion);
                 writer.WriteString("created", DateTime.UtcNow.ToString("o"));
+
+                // The document's own title, as the reader will see it in the PDF's
+                // properties - doc.Info.Title, set from the template's <title>. It is
+                // bound by now (see ApplyFormDataAttachment), so an expression title
+                // records the result rather than the expression. Templates often bind
+                // something distinguishing into it - a customer, an invoice number -
+                // which is exactly what tells two documents from the same template
+                // apart when they come back as files.
+                var docTitle = doc.Info?.Title;
+                if (!string.IsNullOrWhiteSpace(docTitle))
+                    writer.WriteString("title", docTitle);
 
                 if (!string.IsNullOrEmpty(formData.Source) || !string.IsNullOrEmpty(formData.Version)
                     || !string.IsNullOrEmpty(formData.Path))
