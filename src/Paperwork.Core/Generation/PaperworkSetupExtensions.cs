@@ -12,15 +12,19 @@ namespace Paperwork.Generation
         private static readonly Lazy<HttpClient> _defaultClient = new(() => new HttpClient());
 
         /// <summary>
-        /// Registers core Paperwork services: <see cref="IPaperworkAuthService"/> and
-        /// <see cref="IPaperworkFactory"/>. The factory uses the application's
+        /// Registers core Paperwork services: <see cref="IPaperworkAuthService"/> (a single
+        /// <see cref="PaperworkAuthWrapperService"/>, to which auth handlers are added) and
+        /// <see cref="IPaperworkFactory"/>, which fetches with that auth service. The factory uses the application's
         /// <see cref="HttpClient"/>, <see cref="IPaperworkTracingService"/> and
         /// <see cref="IPaperworkRemoteFileRequestService"/> when they are registered,
         /// and defaults otherwise.
         /// </summary>
         public static IServiceCollection AddPaperwork(this IServiceCollection services)
         {
-            services.AddSingleton<IPaperworkAuthService, PaperworkAuthWrapperService>();
+            // Built explicitly: left to the container, it would pick the wrapper's
+            // IEnumerable<IPaperworkAuthService> constructor, and that list includes the
+            // wrapper itself - a circular dependency (Paperwork.Core issue #1).
+            services.AddSingleton<IPaperworkAuthService>(_ => new PaperworkAuthWrapperService());
             services.AddScoped<IPaperworkFactory>(sp => new PaperworkInstanceFactory(
                 new System.Text.Json.JsonSerializerOptions
                 {
@@ -28,7 +32,9 @@ namespace Paperwork.Generation
                     PropertyNameCaseInsensitive = true
                 },
                 sp.GetService<HttpClient>() ?? _defaultClient.Value,
-                new PaperworkAuthWrapperService(),
+                // The registered auth service, so handlers added to it (for example
+                // WithDefaultAuth()) are the ones the factory fetches with.
+                sp.GetRequiredService<IPaperworkAuthService>(),
                 sp.GetService<IPaperworkTracingService>() ?? new PaperworkTracingService(),
                 sp.GetService<IPaperworkRemoteFileRequestService>() ?? new EmptyFileRequestService()));
             return services;
