@@ -7,13 +7,26 @@
 
     <!-- Package identity -->
     <PackageId>Paperwork.Core</PackageId>
-    <Version>9.11.0-beta.1</Version>
+    <Version>9.11.0</Version>
     <Authors>paperwork-collective</Authors>
     <Description>Paperwork.Core generates PDF documents from templates. It turns HTML templates with CSS styles and SVG drawing, bound to your data, into PDF documents - with flowing pages, data binding, and referenced images, stylesheets and fonts - on .NET and in Blazor WASM.
 
 It adds a fluent builder, dependency injection and code configuration on top of the Scryber.Core rendering engine. Paperwork.Core is the successor to Scryber.Core, and your Scryber templates carry straight across.
 
 Released under the MIT licence.</Description>
+    <PackageReleaseNotes>9.11.0
+
+New
+- Form data in the document. A template can attach the field values a document was made from, as an embedded file in the PDF's own catalog. Nothing is drawn on any page, but the file is listed in a reader's attachments panel. It is off unless asked for: set it in the template's formData, or call WithFormData() on the builder. Only the fields someone filling in the form can change are attached - $fields holds every field in the published template, the designer's own included, so TemplateFormData.Fields is "filled" by default. A document built in code keeps "all", because there is no form and every value is the caller's own. The payload also records the document's own title, so two documents made from the same template can be told apart.
+
+Fixes
+- AddPaperwork no longer registers the auth wrapper in a way that makes it depend on itself. Building the provider with ValidateOnBuild, or resolving IPaperworkAuthService, threw a circular-dependency error (#1).
+
+Engine
+- Scryber.Core 9.11.0 underneath, which has breaking changes to list indents and to svg images sized with a percentage, plus font subsetting. See its own change log.
+
+Full change log: https://paperwork.help/paperwork.core/changelog/paperwork_core.html
+Engine change log: https://paperwork.help/paperwork.core/changelog/scryber_core.html</PackageReleaseNotes>
     <PackageTags>pdf scryber html-to-pdf document-generation</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/paperwork-collective/Paperwork.Core</PackageProjectUrl>
@@ -30,7 +43,7 @@ Released under the MIT licence.</Description>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
-    <PackageReference Include="Scryber.Core" Version="9.11.0-beta.1" />
+    <PackageReference Include="Scryber.Core" Version="9.11.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
